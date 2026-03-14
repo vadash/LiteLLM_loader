@@ -2,8 +2,8 @@ model_list:
   - model_name: claude-opus-4-6
     litellm_params:
       model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
-      api_base: os.environ/API_BASE
-      api_key: os.environ/API_KEY
+      api_base: os.environ/LITELLM_API_BASE
+      api_key: os.environ/LITELLM_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
@@ -12,8 +12,8 @@ model_list:
   - model_name: claude-opus-4-6
     litellm_params:
       model: openai/nvidia:qwen/qwen3.5-122b-a10b
-      api_base: os.environ/API_BASE
-      api_key: os.environ/API_KEY
+      api_base: os.environ/LITELLM_API_BASE
+      api_key: os.environ/LITELLM_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
@@ -22,8 +22,8 @@ model_list:
   - model_name: claude-opus-4-6
     litellm_params:
       model: openai/nvidia:moonshotai/kimi-k2-instruct
-      api_base: os.environ/API_BASE
-      api_key: os.environ/API_KEY
+      api_base: os.environ/LITELLM_API_BASE
+      api_key: os.environ/LITELLM_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
@@ -32,8 +32,8 @@ model_list:
   - model_name: claude-opus-4-6
     litellm_params:
       model: openai/nvidia:moonshotai/kimi-k2-instruct-0905
-      api_base: os.environ/API_BASE
-      api_key: os.environ/API_KEY
+      api_base: os.environ/LITELLM_API_BASE
+      api_key: os.environ/LITELLM_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
@@ -42,8 +42,8 @@ model_list:
   - model_name: claude-opus-4-6
     litellm_params:
       model: openai/longcat:LongCat-Flash-Chat
-      api_base: os.environ/API_BASE
-      api_key: os.environ/API_KEY
+      api_base: os.environ/LITELLM_API_BASE
+      api_key: os.environ/LITELLM_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
@@ -52,8 +52,8 @@ model_list:
   - model_name: claude-opus-4-6
     litellm_params:
       model: openai/cerebras:qwen-3-235b-a22b-instruct-2507
-      api_base: os.environ/API_BASE
-      api_key: os.environ/API_KEY
+      api_base: os.environ/LITELLM_API_BASE
+      api_key: os.environ/LITELLM_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
