@@ -8,6 +8,7 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "qwen-80b"
+      order: 1
 
   - model_name: claude-opus-4-6
     litellm_params:
@@ -18,6 +19,7 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "qwen-122b"
+      order: 2
 
   - model_name: claude-opus-4-6
     litellm_params:
@@ -27,7 +29,8 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
-      id: "kimi-k2-old"      
+      id: "kimi-k2-old"
+      order: 3
 
   - model_name: claude-opus-4-6
     litellm_params:
@@ -38,6 +41,7 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "kimi-k2-new"
+      order: 4
 
   - model_name: claude-opus-4-6
     litellm_params:
@@ -48,6 +52,7 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "longcat"
+      order: 5
 
   - model_name: claude-opus-4-6
     litellm_params:
@@ -58,10 +63,10 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "cerebras"
+      order: 6
 
 router_settings:
-  routing_strategy: "priority-based"
-  # This ensures LiteLLM actually uses the priority order defined in model_list
+  routing_strategy: "simple-shuffle"
   enable_pre_call_checks: true
 
 litellm_settings:
