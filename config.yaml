@@ -59,9 +59,15 @@ model_list:
     model_info:
       id: "cerebras"
 
+router_settings:
+  routing_strategy: "priority-based"
+  # This ensures LiteLLM actually uses the priority order defined in model_list
+  enable_pre_call_checks: true
+
 litellm_settings:
-  # Failover settings
   num_retries: 5
+  # Block a model if it fails more than 2-3 times
   allowed_fails: 3
+  # Block it for exactly 30 seconds
   cooldown_time: 30
   callbacks: ["handler.custom_handler"]
