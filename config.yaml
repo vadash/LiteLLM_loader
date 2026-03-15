@@ -8,9 +8,8 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "qwen-80b"
-      order: 1
 
-  - model_name: claude-opus-4-6
+  - model_name: fallback-1
     litellm_params:
       model: openai/nvidia:qwen/qwen3.5-122b-a10b
       api_base: os.environ/LITELLM_API_BASE
@@ -19,9 +18,8 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "qwen-122b"
-      order: 2
 
-  - model_name: claude-opus-4-6
+  - model_name: fallback-2
     litellm_params:
       model: openai/nvidia:moonshotai/kimi-k2-instruct
       api_base: os.environ/LITELLM_API_BASE
@@ -30,9 +28,8 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "kimi-k2-old"
-      order: 3
 
-  - model_name: claude-opus-4-6
+  - model_name: fallback-3
     litellm_params:
       model: openai/nvidia:moonshotai/kimi-k2-instruct-0905
       api_base: os.environ/LITELLM_API_BASE
@@ -41,9 +38,8 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "kimi-k2-new"
-      order: 4
 
-  - model_name: claude-opus-4-6
+  - model_name: fallback-4
     litellm_params:
       model: openai/longcat:LongCat-Flash-Chat
       api_base: os.environ/LITELLM_API_BASE
@@ -52,9 +48,8 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "longcat"
-      order: 5
 
-  - model_name: claude-opus-4-6
+  - model_name: fallback-5
     litellm_params:
       model: openai/cerebras:qwen-3-235b-a22b-instruct-2507
       api_base: os.environ/LITELLM_API_BASE
@@ -63,16 +58,15 @@ model_list:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
     model_info:
       id: "cerebras"
-      order: 6
 
 router_settings:
   routing_strategy: "simple-shuffle"
+  fallbacks:
+    - claude-opus-4-6: ["fallback-1", "fallback-2", "fallback-3", "fallback-4", "fallback-5"]
+  num_retries: 1
   enable_pre_call_checks: true
 
 litellm_settings:
-  num_retries: 5
-  # Block a model if it fails more than 2-3 times
-  allowed_fails: 3
-  # Block it for exactly 30 seconds
+  allowed_fails: 2
   cooldown_time: 30
   callbacks: ["handler.custom_handler"]
