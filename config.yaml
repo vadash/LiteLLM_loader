@@ -47,10 +47,86 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
+  - model_name: ds32
+    litellm_params:
+      model: openai/nvidia:deepseek-ai/deepseek-v3.2
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: ds31
+    litellm_params:
+      model: openai/nvidia:deepseek-ai/deepseek-v3.1
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: ds31t
+    litellm_params:
+      model: openai/nvidia:deepseek-ai/deepseek-v3.1-terminus
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: glm50
+    litellm_params:
+      model: openai/nvidia:z-ai/glm5
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: glm47
+    litellm_params:
+      model: openai/nvidia:z-ai/glm4.7
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: mistral-med
+    litellm_params:
+      model: openai/mistral:mistral-medium
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: codestral
+    litellm_params:
+      model: openai/mistral:codestral-latest
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: devstral
+    litellm_params:
+      model: openai/mistral:devstral-latest
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: qwen-coder
+    litellm_params:
+      model: openai/qwen:coder-model
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
 router_settings:
   routing_strategy: "simple-shuffle"
+  model_group_alias:
+    fast: qwen-80b
+    smart: ds32
   fallbacks:
-    - qwen-80b: ["qwen-122b", "kimi-k2-new", "kimi-k2-old", "cerebras", "longcat"]
+    - fast: ["qwen-80b", "qwen-122b", "kimi-k2-new", "kimi-k2-old", "cerebras", "longcat"]
+    - smart: ["glm50", "glm47", "ds32", "ds31t", "ds31", "mistral-med", "codestral", "devstral", "qwen-coder", "cerebras", "qwen-80b", "qwen-122b", "kimi-k2-new", "kimi-k2-old"]
   num_retries: 1
   enable_pre_call_checks: true
 
