@@ -6,6 +6,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: qwen-122b
     litellm_params:
@@ -14,6 +16,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: kimi-k2-new
     litellm_params:
@@ -22,6 +26,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: kimi-k2-old
     litellm_params:
@@ -30,6 +36,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: cerebras
     litellm_params:
@@ -38,6 +46,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: longcat
     litellm_params:
@@ -46,6 +56,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: ds32
     litellm_params:
@@ -54,6 +66,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: ds31
     litellm_params:
@@ -62,6 +76,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: ds31t
     litellm_params:
@@ -70,6 +86,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: glm50
     litellm_params:
@@ -78,6 +96,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: glm47
     litellm_params:
@@ -86,6 +106,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: mistral-med
     litellm_params:
@@ -94,6 +116,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: codestral
     litellm_params:
@@ -102,6 +126,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: devstral
     litellm_params:
@@ -110,6 +136,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
   - model_name: qwen-coder
     litellm_params:
@@ -118,6 +146,8 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+    model_info:
+      hide_model: true
 
 router_settings:
   routing_strategy: "simple-shuffle"
@@ -126,11 +156,28 @@ router_settings:
     SMART: glm50
   fallbacks:
     - FAST: ["qwen-122b", "kimi-k2-new", "kimi-k2-old", "cerebras", "longcat"]
-    - SMART: ["glm47", "ds32", "ds31t", "ds31", "mistral-med", "codestral", "devstral", "qwen-coder", "cerebras", "qwen-80b", "qwen-122b", "kimi-k2-new", "kimi-k2-old"]
+    - SMART:
+        [
+          "glm47",
+          "ds32",
+          "ds31t",
+          "ds31",
+          "mistral-med",
+          "codestral",
+          "devstral",
+          "qwen-coder",
+          "cerebras",
+          "qwen-80b",
+          "qwen-122b",
+          "kimi-k2-new",
+          "kimi-k2-old",
+        ]
   num_retries: 1
   enable_pre_call_checks: true
 
 litellm_settings:
+  # Trigger cooldown if a model fails more than 2 times in a minute
   allowed_fails: 2
-  cooldown_time: 30
+  # Set the cooldown duration to 120 seconds (2 minutes)
+  cooldown_time: 120
   callbacks: ["handler.custom_handler"]
