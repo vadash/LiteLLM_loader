@@ -122,11 +122,11 @@ model_list:
 router_settings:
   routing_strategy: "simple-shuffle"
   model_group_alias:
-    fast: qwen-80b
-    smart: ds32
+    FAST: qwen-80b
+    SMART: glm50
   fallbacks:
-    - fast: ["qwen-80b", "qwen-122b", "kimi-k2-new", "kimi-k2-old", "cerebras", "longcat"]
-    - smart: ["glm50", "glm47", "ds32", "ds31t", "ds31", "mistral-med", "codestral", "devstral", "qwen-coder", "cerebras", "qwen-80b", "qwen-122b", "kimi-k2-new", "kimi-k2-old"]
+    - FAST: ["qwen-122b", "kimi-k2-new", "kimi-k2-old", "cerebras", "longcat"]
+    - SMART: ["glm47", "ds32", "ds31t", "ds31", "mistral-med", "codestral", "devstral", "qwen-coder", "cerebras", "qwen-80b", "qwen-122b", "kimi-k2-new", "kimi-k2-old"]
   num_retries: 1
   enable_pre_call_checks: true
 
