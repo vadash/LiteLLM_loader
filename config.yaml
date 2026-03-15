@@ -180,4 +180,12 @@ litellm_settings:
   allowed_fails: 2
   # Set the cooldown duration to 120 seconds (2 minutes)
   cooldown_time: 120
+  # Skip empty responses
   callbacks: ["handler.custom_handler"]
+  # Set to false for production use to eliminate serialization lag
+  set_verbose: false
+  # Disable global health checks on startup
+  check_all_models: false 
+  # Keeps checks active during actual requests to maintain your cooldown logic
+  enable_pre_call_checks: true 
+  
