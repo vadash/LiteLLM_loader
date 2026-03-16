@@ -1,4 +1,5 @@
 model_list:
+  # ── Individual models ────────────────────────────────────────────────────────
   - model_name: qwen-80b
     litellm_params:
       model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
@@ -6,8 +7,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: qwen-122b
     litellm_params:
@@ -16,8 +15,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: kimi-k2-new
     litellm_params:
@@ -26,8 +23,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: kimi-k2-old
     litellm_params:
@@ -36,8 +31,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: cerebras
     litellm_params:
@@ -46,8 +39,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: longcat
     litellm_params:
@@ -56,8 +47,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: ds32
     litellm_params:
@@ -66,8 +55,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: ds31
     litellm_params:
@@ -76,8 +63,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: ds31t
     litellm_params:
@@ -86,8 +71,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: glm50
     litellm_params:
@@ -96,8 +79,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: glm47
     litellm_params:
@@ -106,8 +87,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: mistral
     litellm_params:
@@ -116,8 +95,6 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
 
   - model_name: qwen-coder
     litellm_params:
@@ -126,37 +103,115 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
+
+  # ── User-facing group: FAST = lowest latency of 2 Qwens ────────────────────
+  - model_name: FAST
+    litellm_params:
+      model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: FAST
+    litellm_params:
+      model: openai/nvidia:qwen/qwen3.5-122b-a10b
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  # ── User-facing group: SMART = lowest latency of 2 GLMs ─────────────────────
+  - model_name: SMART
+    litellm_params:
+      model: openai/nvidia:z-ai/glm5
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: SMART
+    litellm_params:
+      model: openai/nvidia:z-ai/glm4.7
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  # ── Reusable fallback groups ─────────────────────────────────────────────────
+  - model_name: qwen3x
+    litellm_params:
+      model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: qwen3x
+    litellm_params:
+      model: openai/nvidia:qwen/qwen3.5-122b-a10b
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: ds3x
+    litellm_params:
+      model: openai/nvidia:deepseek-ai/deepseek-v3.2
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: ds3x
+    litellm_params:
+      model: openai/nvidia:deepseek-ai/deepseek-v3.1
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: ds3x
+    litellm_params:
+      model: openai/nvidia:deepseek-ai/deepseek-v3.1-terminus
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: kimi2
+    litellm_params:
+      model: openai/nvidia:moonshotai/kimi-k2-instruct-0905
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: kimi2
+    litellm_params:
+      model: openai/nvidia:moonshotai/kimi-k2-instruct
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
 router_settings:
-  routing_strategy: "simple-shuffle"
-  model_group_alias:
-    FAST: qwen-122b
-    SMART: glm50
+  routing_strategy: "latency-based-routing"
+  routing_strategy_args:
+    lowest_latency_buffer: 0.3
+
   fallbacks:
-    - FAST: ["qwen-80b", "kimi-k2-new", "kimi-k2-old", "cerebras", "longcat"]
-    - SMART:
-        [
-          "glm47",
-          "ds32",
-          "ds31t",
-          "ds31",
-          "mistral",
-          "qwen-coder",
-          "cerebras",
-          "qwen-122b",
-          "qwen-80b",          
-          "kimi-k2-new",
-          "kimi-k2-old",
-        ]
+    - FAST: ["kimi2", "cerebras", "ds3x", "longcat", "qwen-coder"]
+    - SMART: ["qwen3x", "cerebras", "ds3x", "qwen-coder", "longcat"]
+
   num_retries: 1
   enable_pre_call_checks: true
+  allowed_fails: 2
+  cooldown_time: 120
+
+general_settings:
+  background_health_checks: false
 
 litellm_settings:
-  allowed_fails: 2        # Trigger cooldown after 2 failures within the cooldown window
-  cooldown_time: 120      # Cooldown duration in seconds (2 minutes) after allowed_fails is hit
-  callbacks: ["handler.custom_handler"] # Custom callback — handles empty response skipping
-  set_verbose: false      # Disable verbose logging in production to eliminate serialization lag
-  check_all_models: false # Skip global health checks on startup (avoids cold-start delays)
-  enable_pre_call_checks: true # Re-enabled per-request: keeps cooldown logic active during calls
+  callbacks: ["handler.custom_handler"]
+  set_verbose: false
