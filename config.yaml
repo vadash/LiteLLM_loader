@@ -154,16 +154,9 @@ router_settings:
   enable_pre_call_checks: true
 
 litellm_settings:
-  # Trigger cooldown if a model fails more than 2 times in a minute
-  allowed_fails: 2
-  # Set the cooldown duration to 120 seconds (2 minutes)
-  cooldown_time: 120
-  # Skip empty responses
-  callbacks: ["handler.custom_handler"]
-  # Set to false for production use to eliminate serialization lag
-  set_verbose: false
-  # Disable global health checks on startup
-  check_all_models: false 
-  # Keeps checks active during actual requests to maintain your cooldown logic
-  enable_pre_call_checks: true 
-  
+  allowed_fails: 2        # Trigger cooldown after 2 failures within the cooldown window
+  cooldown_time: 120      # Cooldown duration in seconds (2 minutes) after allowed_fails is hit
+  callbacks: ["handler.custom_handler"] # Custom callback — handles empty response skipping
+  set_verbose: false      # Disable verbose logging in production to eliminate serialization lag
+  check_all_models: false # Skip global health checks on startup (avoids cold-start delays)
+  enable_pre_call_checks: true # Re-enabled per-request: keeps cooldown logic active during calls
