@@ -109,29 +109,9 @@ model_list:
     model_info:
       hide_model: true
 
-  - model_name: mistral-med
+  - model_name: mistral
     litellm_params:
-      model: openai/mistral:mistral-medium
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
-
-  - model_name: codestral
-    litellm_params:
-      model: openai/mistral:codestral-latest
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-    model_info:
-      hide_model: true
-
-  - model_name: devstral
-    litellm_params:
-      model: openai/mistral:devstral-latest
+      model: openai/mistral:mistral
       api_base: os.environ/NVIDIA_API_BASE
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
@@ -152,23 +132,21 @@ model_list:
 router_settings:
   routing_strategy: "simple-shuffle"
   model_group_alias:
-    FAST: qwen-80b
+    FAST: qwen-122b
     SMART: glm50
   fallbacks:
-    - FAST: ["qwen-122b", "kimi-k2-new", "kimi-k2-old", "cerebras", "longcat"]
+    - FAST: ["qwen-80b", "kimi-k2-new", "kimi-k2-old", "cerebras", "longcat"]
     - SMART:
         [
           "glm47",
           "ds32",
           "ds31t",
           "ds31",
-          "mistral-med",
-          "codestral",
-          "devstral",
+          "mistral",
           "qwen-coder",
           "cerebras",
-          "qwen-80b",
           "qwen-122b",
+          "qwen-80b",          
           "kimi-k2-new",
           "kimi-k2-old",
         ]
