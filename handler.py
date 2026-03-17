@@ -105,17 +105,19 @@ class GarbageResponseHandler(CustomLogger):
         """Mark a deployment as dead directly in the router cache."""
         print(f"[GarbageResponseHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason})")
 
-        # Get the router instance (if available)
-        # Note: This accesses LiteLLM's internal router cache
+        # Access router via litellm module-level singleton (avoid proxy_server imports)
         try:
-            from litellm.proxy.proxy_server import master_router
-            if master_router and hasattr(master_router, 'cache'):
-                master_router.cache.set_cache(
+            import litellm
+            router = getattr(litellm, 'router', None)
+            if router and hasattr(router, 'cache'):
+                router.cache.set_cache(
                     key=f"deployment:{deployment_id}:cooldown",
                     value={"status": "cooldown", "exception_status": "500"},
                     ttl=self.COOLDOWN_SECONDS,
                 )
                 print(f"[GarbageResponseHandler] Deployment marked as dead for {self.COOLDOWN_SECONDS}s")
+            else:
+                print("[GarbageResponseHandler] Warning: litellm.router not available")
         except Exception as e:
             print(f"[GarbageResponseHandler] Warning: Could not mark deployment dead: {e}")
 
