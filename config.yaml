@@ -266,13 +266,13 @@ router_settings:
     lowest_latency_buffer: 0.3
 
   # ── Fallback behavior (with num_retries: 0) ────────────────────────────────
-  # 1. Pick fastest model from group (e.g., FASTER's 8 models)
-  # 2. If fails → immediately try next fallback (no retry on same model)
-  # 3. Each fallback group (qwen3x, kimi2) also uses latency-based routing internally
+  # Important: Use specific model IDs as fallbacks, not group names.
+  # Groups like "qwen3x" would need their own fallbacks defined, causing cycles.
+  # Instead, we list explicit fallback models that can independently retry.
   fallbacks:
-    - FAST: ["kimi2", "cerebras", "ds3x", "longcat", "qwen-coder"]
-    - SMART: ["qwen3x", "cerebras", "ds3x", "qwen-coder", "longcat"]
-    - FASTER: ["qwen3x", "kimi2", "longcat", "cerebras", "qwen-coder"]
+    - FAST: ["kimi-k2-new", "kimi-k2-old", "cerebras", "ds32", "ds31", "longcat", "qwen-coder"]
+    - SMART: ["qwen-80b", "qwen-122b", "cerebras", "ds32", "ds31", "qwen-coder", "longcat"]
+    - FASTER: ["qwen-80b", "qwen-122b", "kimi-k2-new", "kimi-k2-old", "cerebras", "ds32", "ds31", "ds31t", "longcat", "qwen-coder"]
 
   num_retries: 0
   enable_pre_call_checks: true
