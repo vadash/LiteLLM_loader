@@ -317,7 +317,7 @@ router_settings:
     - longcat: ["qwen-coder"]
     - qwen-coder: []
 
-  timeout: 45
+  timeout: 60
   num_retries: 0
   enable_pre_call_checks: true
   allowed_fails: 1           # Mark as dead after 1 garbage response
