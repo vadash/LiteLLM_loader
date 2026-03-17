@@ -18,6 +18,11 @@ class GarbageResponseHandler(CustomLogger):
         r'class\s+\w+Controller',        # PHP controller class
         r'Illuminate\\',                 # Laravel framework
         r'use\s+Illuminate\\',           # Laravel imports
+        r'<system>',                     # System prompt leak (LLM returning its own instructions)
+        r'</system>',                    # System prompt leak closing tag
+        r'你是一个专业的AI助手',          # Chinese system prompt template
+        r'你是一个.*?AI.*?助手',          # Generic Chinese "you are an AI assistant" pattern
+        r'共\s+\d+\s+条',                # Weibo-style count ("共 0 条")
     ]
 
     # Responses shorter than this are likely garbage (unless empty is valid)
@@ -128,16 +133,26 @@ class GarbageResponseHandler(CustomLogger):
 
     async def async_post_call_success_hook(self, data, user_api_key_dict, response):
         """Proxy-level guard: rejects garbage before it reaches the client."""
+        # DEBUG: Log that we're checking
+        model = data.get("model", "unknown") if isinstance(data, dict) else "unknown"
+        print(f"[GarbageResponseHandler] Checking response from {model}")
+
         if self._is_empty(response):
-            model = data.get("model", "unknown") if isinstance(data, dict) else "unknown"
             self._trigger_cooldown(model, "empty_response")
 
         content = self._get_content(response)
         expect_json = self._expects_json(data) if isinstance(data, dict) else False
+
+        # DEBUG: Log content preview
+        preview = content[:200] if content else "<empty>"
+        print(f"[GarbageResponseHandler] Content preview: {preview}")
+
         is_garbage, reason = self._looks_like_garbage(content, expect_json)
         if is_garbage:
-            model = data.get("model", "unknown") if isinstance(data, dict) else "unknown"
+            print(f"[GarbageResponseHandler] GARBAGE DETECTED: {reason}")
             self._trigger_cooldown(model, reason)
+        else:
+            print(f"[GarbageResponseHandler] Content OK")
 
         return response
 
