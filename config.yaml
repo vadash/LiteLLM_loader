@@ -269,6 +269,23 @@ router_settings:
   # Groups can fallback to other groups, creating a chain.
   # Each group that appears in a fallback list must have its own fallbacks.
   #
+  # Visual hierarchy:
+  #            FASTER (user request)
+  #               |
+  #        +------+------+------+
+  #        |      |      |      |
+  #     qwen3x  kimi2  ds3x  [direct...]
+  #        |      |      |
+  #        +-kimi2  ds3x
+  #           |      |
+  #        ds3x  cerebras
+  #           |      |
+  #        cerebras longcat
+  #           |
+  #        longcat
+  #           |
+  #        qwen-coder
+  #
   # Chain: FASTER → qwen3x → kimi2 → ds3x → cerebras → longcat → qwen-coder
   fallbacks:
     # Main user-facing groups
