@@ -276,8 +276,16 @@ router_settings:
 
   num_retries: 0
   enable_pre_call_checks: true
-  allowed_fails: 2
-  cooldown_time: 120
+  allowed_fails: 1           # Mark as dead after 1 garbage response
+  cooldown_time: 600         # Keep provider dead for 10 minutes (600 seconds)
+
+  # ── Per-error-type cooldown thresholds ──────────────────────────────────────
+  # InternalServerError = our garbage response trigger
+  allowed_fails_policy:
+    InternalServerErrorAllowedFails: 1      # Instant cooldown on garbage
+    RateLimitErrorAllowedFails: 5           # More lenient on rate limits
+    TimeoutErrorAllowedFails: 3             # Moderate tolerance for timeouts
+    ContentPolicyViolationErrorAllowedFails: 10  # Don't kill for policy issues
 
 general_settings:
   background_health_checks: false
