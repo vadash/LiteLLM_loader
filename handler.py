@@ -1,3 +1,53 @@
+"""
+LiteLLM Garbage Response Handler
+================================
+
+WHAT THIS DOES
+--------------
+Detects garbage responses from low-quality LLMs (training data leakage, HTML
+templates, empty responses, system prompt leaks) and marks the deployment as
+"dead" for 10 minutes. Router will skip dead deployments and use fallbacks.
+
+WHAT WORKS (as of 2026-03-17)
+-----------------------------
+✅ Garbage detection: PHP code, HTML templates, Weibo patterns, Chinese system
+   prompts, generic greetings, empty responses, invalid JSON
+✅ Cooldown marking: Writes to router.cooldown_cache directly
+✅ Router respects cooldown: Dead deployments are not selected again
+✅ Fallback chains: FASTER → qwen3x → kimi2 → ds3x → cerebras → longcat → qwen-coder
+✅ Graceful degradation: Returns 200 OK even when garbage detected
+
+DEBUGGING JOURNEY (for future reference)
+-----------------------------------------
+Attempt 1: Used _set_cooldown_deployments() → FAILED
+  - Function is gated by fail counter, needs threshold to be exceeded first
+  - Returns False on first call, never writes to cooldown cache
+
+Attempt 2: Write to router.cache with key "deployment:{id}:cooldown" → FAILED
+  - Wrong cache! Router has TWO caches:
+    - router.cache (response/latency cache) ❌
+    - router.cooldown_cache (CooldownCache instance) ✅
+  - Selection logic reads from cooldown_cache, not response cache
+
+Attempt 3: Direct cooldown_cache.add_deployment_to_cooldown() → SUCCESS ✅
+  - Bypasses counter-based gating
+  - Writes to correct cache that router checks during selection
+  - Use SHA256 deployment ID from kwargs["litellm_params"]["model_info"]["id"]
+
+REQUIREMENTS
+------------
+- LiteLLM proxy config must have:
+  - router_settings.cooldown_time: 600 (matches COOLDOWN_SECONDS here)
+  - router_settings.allowed_fails: 1
+  - router_settings.allowed_fails_policy.InternalServerErrorAllowedFails: 1
+  - litellm_settings.callbacks: ["handler.custom_handler"]
+- litellm_start.cmd must redirect output to litellm.log for debugging
+
+CONFIG FILE LOCATION
+--------------------
+C:\portable\_scripts\LiteLLM\config.yaml
+"""
+
 import litellm
 from litellm.integrations.custom_logger import CustomLogger
 import re
@@ -5,6 +55,17 @@ import json
 
 
 class GarbageResponseHandler(CustomLogger):
+    """
+    Detects garbage responses and marks deployments as dead.
+
+    Patterns matched:
+    - PHP code (<?php, namespace App\\, Illuminate\\)
+    - HTML templates (<!DOCTYPE, <html, <!-- BEGIN WEIBO)
+    - System prompt leaks (<system>, 你是一个.*?AI.*?助手)
+    - Empty responses (no content, no reasoning)
+    - Generic greetings ("Hi! How can I help you today")
+    - Invalid JSON (when JSON format was requested)
+    """
 
     GARBAGE_PATTERNS = [
         r'<\?php',

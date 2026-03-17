@@ -1,3 +1,37 @@
+# LiteLLM Router Configuration for OpenVault
+# ============================================
+#
+# PURPOSE: Route LLM requests across multiple low-cost public models with automatic
+# fallback when models return garbage responses or timeout.
+#
+# GARBAGE DETECTION: handler.py detects training data leakage (PHP, HTML, Weibo
+# templates, system prompt leaks) and marks deployments as dead for 10 minutes.
+#
+# VISUAL HIERARCHY:
+#            FASTER (user request)
+#               |
+#        +------+------+------+
+#        |      |      |      |
+#     qwen3x  kimi2  ds3x  [direct...]
+#        |      |      |
+#        +-kimi2  ds3x
+#           |      |
+#        ds3x  cerebras
+#           |      |
+#        cerebras longcat
+#           |
+#        longcat
+#           |
+#        qwen-coder
+#
+# IMPORTANT SETTINGS:
+# - router_settings.cooldown_time: 600 (must match handler.py COOLDOWN_SECONDS)
+# - router_settings.allowed_fails: 1
+# - router_settings.allowed_fails_policy.InternalServerErrorAllowedFails: 1
+# - litellm_settings.callbacks: ["handler.custom_handler"]
+#
+# LOGS: Check litellm.log for [GarbageResponseHandler] messages
+#
 model_list:
   # ── Individual models ────────────────────────────────────────────────────────
   - model_name: qwen-80b
@@ -268,24 +302,6 @@ router_settings:
   # ── Fallback behavior with groups ───────────────────────────────────────────
   # Groups can fallback to other groups, creating a chain.
   # Each group that appears in a fallback list must have its own fallbacks.
-  #
-  # Visual hierarchy:
-  #            FASTER (user request)
-  #               |
-  #        +------+------+------+
-  #        |      |      |      |
-  #     qwen3x  kimi2  ds3x  [direct...]
-  #        |      |      |
-  #        +-kimi2  ds3x
-  #           |      |
-  #        ds3x  cerebras
-  #           |      |
-  #        cerebras longcat
-  #           |
-  #        longcat
-  #           |
-  #        qwen-coder
-  #
   # Chain: FASTER → qwen3x → kimi2 → ds3x → cerebras → longcat → qwen-coder
   fallbacks:
     # Main user-facing groups
