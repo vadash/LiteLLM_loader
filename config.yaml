@@ -138,6 +138,15 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
+  - model_name: zai_glm_47
+    litellm_params:
+      model: anthropic/claude-opus-4-6
+      api_base: "https://api.z.ai/api/anthropic"
+      api_key: os.environ/ZAI_API_KEY
+      thinking:
+        type: enabled
+        budget_tokens: 2048
+
   # ── User-facing group: FAST = lowest latency of 2 Qwens ────────────────────
   - model_name: FAST
     litellm_params:
@@ -321,15 +330,15 @@ router_settings:
   num_retries: 0
   enable_pre_call_checks: true
   allowed_fails: 1           # Mark as dead after 1 garbage response
-  cooldown_time: 600         # Keep provider dead for 10 minutes (600 seconds)
+  cooldown_time: 900         # Keep provider dead for 10 minutes (600 seconds)
 
   # ── Per-error-type cooldown thresholds ──────────────────────────────────────
   # InternalServerError = our garbage response trigger
   allowed_fails_policy:
     InternalServerErrorAllowedFails: 1      # Instant cooldown on garbage
-    RateLimitErrorAllowedFails: 5           # More lenient on rate limits
-    TimeoutErrorAllowedFails: 3             # Moderate tolerance for timeouts
-    ContentPolicyViolationErrorAllowedFails: 10  # Don't kill for policy issues
+    RateLimitErrorAllowedFails: 2           # More lenient on rate limits
+    TimeoutErrorAllowedFails: 2             # Moderate tolerance for timeouts
+    ContentPolicyViolationErrorAllowedFails: 5  # Don't kill for policy issues
 
 general_settings:
   background_health_checks: false
@@ -337,3 +346,4 @@ general_settings:
 litellm_settings:
   callbacks: ["handler.custom_handler"]
   set_verbose: false
+  drop_params: true
