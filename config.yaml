@@ -212,7 +212,7 @@ router_settings:
     - qwen-coder: ["cerebras"]
     - cerebras: []
 
-  timeout: 60
+  timeout: 180
   num_retries: 0
   enable_pre_call_checks: true
   allowed_fails: 1           # Mark as dead after 1 garbage response
