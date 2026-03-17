@@ -332,8 +332,7 @@ router_settings:
     ContentPolicyViolationErrorAllowedFails: 10  # Don't kill for policy issues
 
 general_settings:
-  background_health_checks: true
-  health_check_interval: 60
+  background_health_checks: false
 
 litellm_settings:
   callbacks: ["handler.custom_handler"]

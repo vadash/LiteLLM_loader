@@ -128,7 +128,9 @@ class GarbageResponseHandler(CustomLogger):
         return (content or "") + " " + (reasoning or "")
 
     def _get_deployment_id(self, kwargs) -> str:
-        model_id = kwargs.get("litellm_params", {}).get("model_info", {}).get("id", "")
+        litellm_params = kwargs.get("litellm_params") or {}
+        model_info = litellm_params.get("model_info") or {}
+        model_id = model_info.get("id", "")
         if model_id and len(model_id) >= 20:
             return model_id
         print("[GarbageResponseHandler] Warning: No valid model_info.id found, skipping cooldown")
