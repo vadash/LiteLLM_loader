@@ -1,6 +1,5 @@
 import litellm
 from litellm.integrations.custom_logger import CustomLogger
-from litellm.router_utils.cooldown_handlers import _set_cooldown_deployments
 import re
 import json
 import time
@@ -103,59 +102,48 @@ class GarbageResponseHandler(CustomLogger):
         return (content or "") + " " + (reasoning or "")
 
     def _mark_deployment_dead(self, deployment_id: str, reason: str):
-        """Mark a deployment as dead using LiteLLM's cooldown mechanism."""
+        """Mark a deployment as dead using LiteLLM's cooldown cache."""
         print(f"[GarbageResponseHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason})")
 
         try:
             from litellm.proxy.proxy_server import llm_router
 
-            if llm_router is None:
-                print("[GarbageResponseHandler] Warning: llm_router not available")
+            if llm_router is None or not hasattr(llm_router, 'cooldown_cache'):
+                print("[GarbageResponseHandler] Warning: router.cooldown_cache not available")
                 return
 
-            # Create a synthetic exception that maps to InternalServerError
-            # This triggers InternalServerErrorAllowedFails policy (set to 1 in config)
             fake_exception = litellm.InternalServerError(
-                message=f"Garbage response detected: {reason}",
+                message=f"Garbage response: {reason}",
                 model=deployment_id,
                 llm_provider="",
             )
 
-            result = _set_cooldown_deployments(
-                litellm_router_instance=llm_router,
+            llm_router.cooldown_cache.add_deployment_to_cooldown(
+                model_id=deployment_id,
                 original_exception=fake_exception,
                 exception_status=500,
-                deployment=deployment_id,
-                time_to_cooldown=float(self.COOLDOWN_SECONDS),
+                cooldown_time=float(self.COOLDOWN_SECONDS),
             )
+            print(f"[GarbageResponseHandler] Deployment marked dead for {self.COOLDOWN_SECONDS}s")
 
-            if result:
-                print(f"[GarbageResponseHandler] Deployment marked dead for {self.COOLDOWN_SECONDS}s")
-            else:
-                print(f"[GarbageResponseHandler] Cooldown not applied (allowed_fails threshold not yet exceeded)")
-
-        except ImportError as e:
-            print(f"[GarbageResponseHandler] Warning: Could not import llm_router: {e}")
         except Exception as e:
             print(f"[GarbageResponseHandler] Warning: Could not mark deployment dead: {e}")
 
     def _get_deployment_id(self, kwargs, response_obj) -> str:
-        """Extract deployment ID from kwargs (SHA256 hash) or fallback to model name."""
-        # litellm_params contains the internal model_id assigned by the router
-        litellm_params = kwargs.get("litellm_params", {})
-        model_id = litellm_params.get("model_info", {}).get("id", "")
-        if model_id:
+        """Extract deployment SHA256 ID from kwargs."""
+        model_id = kwargs.get("litellm_params", {}).get("model_info", {}).get("id", "")
+        # Only return if it's a real SHA256 hex string (64 chars)
+        if model_id and len(model_id) >= 20:
             return model_id
-        # Fallback to model name from response
-        return getattr(response_obj, 'model', '')
+        print(f"[GarbageResponseHandler] Warning: No valid model_info.id found, skipping cooldown")
+        return ""
 
     async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
         """Async path: check response quality, mark deployment dead if garbage."""
-        model = kwargs.get("model", "unknown")
-
         if self._is_empty(response_obj):
-            deployment_id = self._get_deployment_id(kwargs, response_obj) or model
-            self._mark_deployment_dead(deployment_id, "empty_response")
+            deployment_id = self._get_deployment_id(kwargs, response_obj)
+            if deployment_id:
+                self._mark_deployment_dead(deployment_id, "empty_response")
             return
 
         content = self._get_content(response_obj)
@@ -163,20 +151,19 @@ class GarbageResponseHandler(CustomLogger):
         is_garbage, reason = self._looks_like_garbage(content, expect_json)
 
         if is_garbage:
-            deployment_id = self._get_deployment_id(kwargs, response_obj) or model
-            self._mark_deployment_dead(deployment_id, reason)
+            deployment_id = self._get_deployment_id(kwargs, response_obj)
+            if deployment_id:
+                self._mark_deployment_dead(deployment_id, reason)
 
     async def async_post_call_success_hook(self, data, user_api_key_dict, response):
         """Proxy-level guard: marks garbage responses as dead before they reach the client."""
-        # data here is kwargs dict in proxy context
         if not isinstance(data, dict):
             return response
 
-        model = data.get("model", "unknown")
-
         if self._is_empty(response):
-            deployment_id = self._get_deployment_id(data, response) or model
-            self._mark_deployment_dead(deployment_id, "empty_response")
+            deployment_id = self._get_deployment_id(data, response)
+            if deployment_id:
+                self._mark_deployment_dead(deployment_id, "empty_response")
             return response
 
         content = self._get_content(response)
@@ -184,8 +171,9 @@ class GarbageResponseHandler(CustomLogger):
         is_garbage, reason = self._looks_like_garbage(content, expect_json)
 
         if is_garbage:
-            deployment_id = self._get_deployment_id(data, response) or model
-            self._mark_deployment_dead(deployment_id, reason)
+            deployment_id = self._get_deployment_id(data, response)
+            if deployment_id:
+                self._mark_deployment_dead(deployment_id, reason)
 
         return response
 
