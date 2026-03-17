@@ -25,15 +25,16 @@ The VBS scripts use `.litellm.pid` to track the running process — only the exa
 
 ### Latency-Based Fallback Routing (`config.yaml`)
 
-Models are organized into **user-facing groups** (`FAST`, `SMART`) and **reusable fallback groups** (`qwen3x`, `kimi2`, `zai_glm47`). The router uses latency-based routing to pick the fastest deployment within each group.
+Models are organized into **user-facing groups** (`FAST`, `SMART`) and **reusable fallback groups** (`qwen3x`, `kimi2`, `nvidia_glm`, `zai_glm47`). The router uses latency-based routing to pick the fastest deployment within each group.
 
 **User-facing groups:**
 - `FAST` — lowest latency of 2 Qwen models (qwen3x)
-- `SMART` — lowest latency of 2 GLM models
+- `SMART` — alias for `zai_glm47` (Claude via z.ai)
 
 **Fallback chain** (primary → last resort):
 ```
-FAST/SMART → qwen3x → kimi2 → zai_glm47 → longcat → qwen-coder → cerebras
+FAST → qwen3x → kimi2 → zai_glm47 → longcat → qwen-coder → cerebras
+SMART → qwen3x → nvidia_glm → kimi2 → qwen-coder → cerebras → longcat
 ```
 
 Each group that appears in a fallback list **must have its own fallback entry**. The chain terminates at `cerebras: []`.

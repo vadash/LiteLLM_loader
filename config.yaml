@@ -140,8 +140,18 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  # ── User-facing group: SMART = lowest latency of 2 GLMs ─────────────────────
+  # ── User-facing group: SMART = alias for zai_glm47 (Claude via z.ai) ─────────
   - model_name: SMART
+    litellm_params:
+      model: anthropic/claude-opus-4-6
+      api_base: "https://api.z.ai/api/anthropic"
+      api_key: os.environ/ZAI_API_KEY
+      thinking:
+        type: enabled
+        budget_tokens: 2048
+
+  # ── Reusable fallback groups ─────────────────────────────────────────────────
+  - model_name: nvidia_glm
     litellm_params:
       model: openai/nvidia:z-ai/glm5
       api_base: os.environ/NVIDIA_API_BASE
@@ -149,7 +159,7 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: SMART
+  - model_name: nvidia_glm
     litellm_params:
       model: openai/nvidia:z-ai/glm4.7
       api_base: os.environ/NVIDIA_API_BASE
@@ -157,7 +167,6 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  # ── Reusable fallback groups ─────────────────────────────────────────────────
   - model_name: qwen3x
     litellm_params:
       model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
@@ -202,10 +211,11 @@ router_settings:
   fallbacks:
     # Main user-facing groups
     - FAST: ["kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
-    - SMART: ["zai_glm47", "qwen3x", "kimi2", "qwen-coder", "longcat", "cerebras"]
+    - SMART: ["qwen3x", "nvidia_glm", "kimi2", "qwen-coder", "cerebras", "longcat"]
 
     # Reusable fallback groups - each has its own fallback chain
     - qwen3x: ["kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
+    - nvidia_glm: ["qwen3x", "kimi2", "qwen-coder", "cerebras", "longcat"]
     - kimi2: ["zai_glm47", "longcat", "qwen-coder", "cerebras"]
     - zai_glm47: ["longcat", "qwen-coder", "cerebras"]
     - longcat: ["qwen-coder", "cerebras"]
