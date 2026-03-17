@@ -10,12 +10,13 @@ templates, empty responses, system prompt leaks) and marks the deployment as
 
 WHAT WORKS (as of 2026-03-17)
 -----------------------------
-✅ Garbage detection: PHP code, HTML templates, Weibo patterns, Chinese system
-   prompts, generic greetings, empty responses, invalid JSON
+✅ Garbage detection: PHP code, leaked HTML documents, Weibo patterns, Chinese system
+   prompts, generic greetings, empty responses, missing JSON structure
 ✅ Cooldown marking: Writes to router.cooldown_cache directly
 ✅ Router respects cooldown: Dead deployments are not selected again
 ✅ Fallback chains: FASTER → qwen3x → kimi2 → ds3x → cerebras → longcat → qwen-coder
 ✅ Graceful degradation: Returns 200 OK even when garbage detected
+✅ Streaming support: async_log_stream_complete_event for stream: true requests
 
 DEBUGGING JOURNEY (for future reference)
 -----------------------------------------
@@ -51,7 +52,6 @@ C:\portable\_scripts\LiteLLM\config.yaml
 import litellm
 from litellm.integrations.custom_logger import CustomLogger
 import re
-import json
 
 
 class GarbageResponseHandler(CustomLogger):
@@ -60,19 +60,17 @@ class GarbageResponseHandler(CustomLogger):
 
     Patterns matched:
     - PHP code (<?php, namespace App\\, Illuminate\\)
-    - HTML templates (<!DOCTYPE, <html, <!-- BEGIN WEIBO)
+    - Leaked HTML documents (<!DOCTYPE at start, <html at start)
     - System prompt leaks (<system>, 你是一个.*?AI.*?助手)
     - Empty responses (no content, no reasoning)
     - Generic greetings ("Hi! How can I help you today")
-    - Invalid JSON (when JSON format was requested)
+    - Missing JSON structure (when JSON format was requested but no brackets found)
+    - Streaming responses (via async_log_stream_complete_event)
     """
 
     GARBAGE_PATTERNS = [
         r'<\?php',
         r'<!--\s*BEGIN\s+WEIBO',
-        r'<!DOCTYPE\s+html',
-        r'<html[^>]*>',
-        r'<\s*head\s*>',
         r'namespace\s+App\\',
         r'class\s+\w+Controller',
         r'Illuminate\\',
@@ -104,18 +102,14 @@ class GarbageResponseHandler(CustomLogger):
         for pattern in self.GARBAGE_PATTERNS:
             if re.search(pattern, content, re.IGNORECASE):
                 return True, f"pattern_match:{pattern}"
-        if re.search(r'<\s*\/?[a-z][a-z0-9]*(?:\s[^>]*)?>', content):
-            allowed_tags = {'thought', 'think', 'thinking', 'reasoning'}
-            if not any(f'<{tag}' in content_lower for tag in allowed_tags):
-                if re.search(r'<\w+\s+\w+\s*=', content):
-                    return True, "html_content"
+        # Only flag full leaked HTML documents, not code snippets
+        if re.match(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', content, re.IGNORECASE):
+            return True, "leaked_html_document"
+        # Loose JSON check: only flag if model completely failed to produce any
+        # JSON structure. Client-side repair handles syntax/truncation issues.
         if expect_json:
-            content_stripped = content.strip()
-            if content_stripped.startswith(('{', '[')):
-                try:
-                    json.loads(content)
-                except json.JSONDecodeError:
-                    return True, "invalid_json"
+            if '{' not in content and '[' not in content:
+                return True, "missing_json_structure"
         return False, ""
 
     def _expects_json(self, kwargs: dict) -> bool:
@@ -183,6 +177,22 @@ class GarbageResponseHandler(CustomLogger):
         is_garbage, reason = self._looks_like_garbage(content, self._expects_json(kwargs))
         if is_garbage:
             self._mark_deployment_dead(deployment_id, reason)
+
+    async def async_log_stream_complete_event(self, kwargs, response_obj, start_time, end_time):
+        """Hook for streaming requests. response_obj contains the aggregated response."""
+        deployment_id = self._get_deployment_id(kwargs)
+        if not deployment_id:
+            return
+
+        content = self._get_content(response_obj)
+
+        if not content.strip():
+            self._mark_deployment_dead(deployment_id, "empty_stream_response")
+            return
+
+        is_garbage, reason = self._looks_like_garbage(content, self._expects_json(kwargs))
+        if is_garbage:
+            self._mark_deployment_dead(deployment_id, f"stream_{reason}")
 
 
 custom_handler = GarbageResponseHandler()

@@ -14,13 +14,13 @@
 #        |      |      |      |
 #     qwen3x  kimi2  ds3x  [direct...]
 #        |      |      |
-#        +-kimi2  ds3x
+#        +-kimi2  ds3x  cerebras
+#           |      |      |
+#        ds3x  cerebras longcat
+#           |      |      |
+#        cerebras longcat qwen-coder
 #           |      |
-#        ds3x  cerebras
-#           |      |
-#        cerebras longcat
-#           |
-#        longcat
+#        longcat qwen-coder
 #           |
 #        qwen-coder
 #
@@ -313,7 +313,11 @@ router_settings:
     - qwen3x: ["kimi2", "ds3x", "cerebras", "longcat", "qwen-coder"]
     - kimi2: ["ds3x", "cerebras", "longcat", "qwen-coder"]
     - ds3x: ["cerebras", "longcat", "qwen-coder"]
+    - cerebras: ["longcat", "qwen-coder"]
+    - longcat: ["qwen-coder"]
+    - qwen-coder: []
 
+  timeout: 45
   num_retries: 0
   enable_pre_call_checks: true
   allowed_fails: 1           # Mark as dead after 1 garbage response
@@ -328,7 +332,8 @@ router_settings:
     ContentPolicyViolationErrorAllowedFails: 10  # Don't kill for policy issues
 
 general_settings:
-  background_health_checks: false
+  background_health_checks: true
+  health_check_interval: 60
 
 litellm_settings:
   callbacks: ["handler.custom_handler"]

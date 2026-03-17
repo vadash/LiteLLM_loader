@@ -34,11 +34,22 @@ The router tries the primary model first. On failure it cascades through fallbac
 
 ### Empty Response Handler (`handler.py`)
 
-Custom callback that detects empty LLM responses (no `content` and no `reasoning`/`reasoning_content`) and raises to trigger retry/fallback. Implements three hook points for coverage across sync, async, and proxy-level paths:
+Custom callback that detects garbage LLM responses (empty content, training data leakage, leaked HTML documents, missing JSON structure) and marks deployments as dead via `router.cooldown_cache`. Implements four hook points:
 - `log_success_event` — sync completion path
 - `async_log_success_event` — async completion path
+- `async_log_stream_complete_event` — streaming completion path
 - `async_post_call_success_hook` — proxy-level last-resort guard
+
+**Garbage detection is intentionally loose for JSON** — only checks that `{` or `[` exists somewhere in the response. Client-side repair handles truncation/syntax issues. HTML detection only flags full leaked documents (`<!DOCTYPE`, `<html` at start of response), not code snippets.
+
+### Fallback Chain Completeness
+
+Every model group that appears in a fallback list **must have its own fallback entry** in `config.yaml`, even if it's an empty list. Missing entries cause unhandled exception loops when that model fails. The chain terminates at `qwen-coder: []`.
+
+### Health Checks
+
+Background health checks are enabled (`health_check_interval: 60`). Dead models are pinged periodically and restored to rotation early if they recover, rather than waiting the full cooldown.
 
 ## Adding a New Model
 
-Add a new entry in `config.yaml` with a unique `model_name`, then append it to the `fallbacks` list in `router_settings`.
+Add a new entry in `config.yaml` with a unique `model_name`, then append it to the `fallbacks` list in `router_settings`. **Important:** if the model appears as a fallback target, it must also have its own fallback entry to avoid crash loops.
