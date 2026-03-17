@@ -1,5 +1,6 @@
 .env
 .litellm.pid
+litellm.log
 
 /__pycache__/
 /tmp/

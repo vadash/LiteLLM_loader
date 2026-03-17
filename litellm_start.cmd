@@ -1,3 +1,3 @@
 @echo off
 for /f "usebackq tokens=1,* delims==" %%a in (".env") do set "%%a=%%b"
-litellm --config config.yaml
+litellm --config config.yaml --debug > litellm.log 2>&1
