@@ -32,7 +32,7 @@ class GarbageResponseHandler(CustomLogger):
         reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
         return not content.strip() and not reasoning.strip()
 
-    def _looks_like_garbage(self, content: str) -> tuple[bool, str]:
+    def _looks_like_garbage(self, content: str, expect_json: bool = False) -> tuple[bool, str]:
         """
         Check if content looks like garbage/training data leakage.
         Returns (is_garbage, reason).
@@ -57,11 +57,8 @@ class GarbageResponseHandler(CustomLogger):
                 if re.search(r'<\w+\s+\w+\s*=', content):
                     return True, "html_content"
 
-        # Check for non-JSON when response format is set to JSON
-        # This catches models that return plain text when JSON is expected
-        if 'response_format' in litellm.get_current_llm_module_vars():
-            # Try to parse as JSON - if it fails and doesn't look like markdown,
-            # it's likely garbage
+        # Check for invalid JSON when JSON format was requested
+        if expect_json:
             content_stripped = content.strip()
             if content_stripped.startswith(('{', '[')):
                 try:
@@ -70,6 +67,14 @@ class GarbageResponseHandler(CustomLogger):
                     return True, "invalid_json"
 
         return False, ""
+
+    def _expects_json(self, kwargs: dict) -> bool:
+        """Check if the request expected JSON response format."""
+        litellm_params = kwargs.get("litellm_params", {})
+        response_format = litellm_params.get("response_format") or kwargs.get("response_format", {})
+        if isinstance(response_format, dict):
+            return response_format.get("type") == "json_schema"
+        return False
 
     def _get_content(self, response_obj) -> str:
         """Extract content from response object."""
@@ -102,7 +107,8 @@ class GarbageResponseHandler(CustomLogger):
             self._trigger_cooldown(model, "empty_response")
 
         content = self._get_content(response_obj)
-        is_garbage, reason = self._looks_like_garbage(content)
+        expect_json = self._expects_json(kwargs)
+        is_garbage, reason = self._looks_like_garbage(content, expect_json)
         if is_garbage:
             model = kwargs.get("model", "unknown")
             self._trigger_cooldown(model, reason)
@@ -114,7 +120,8 @@ class GarbageResponseHandler(CustomLogger):
             self._trigger_cooldown(model, "empty_response")
 
         content = self._get_content(response_obj)
-        is_garbage, reason = self._looks_like_garbage(content)
+        expect_json = self._expects_json(kwargs)
+        is_garbage, reason = self._looks_like_garbage(content, expect_json)
         if is_garbage:
             model = kwargs.get("model", "unknown")
             self._trigger_cooldown(model, reason)
@@ -126,7 +133,8 @@ class GarbageResponseHandler(CustomLogger):
             self._trigger_cooldown(model, "empty_response")
 
         content = self._get_content(response)
-        is_garbage, reason = self._looks_like_garbage(content)
+        expect_json = self._expects_json(data) if isinstance(data, dict) else False
+        is_garbage, reason = self._looks_like_garbage(content, expect_json)
         if is_garbage:
             model = data.get("model", "unknown") if isinstance(data, dict) else "unknown"
             self._trigger_cooldown(model, reason)
