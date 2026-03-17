@@ -2,10 +2,16 @@ import litellm
 from litellm.integrations.custom_logger import CustomLogger
 import re
 import json
+import time
 
 
 class GarbageResponseHandler(CustomLogger):
-    """Detects garbage responses (empty, HTML, PHP, non-JSON) and triggers provider cooldown."""
+    """Detects garbage responses (empty, HTML, PHP, non-JSON) and triggers provider cooldown.
+
+    Strategy: When garbage is detected, mark the deployment as dead in router cache
+    and return an empty-but-valid response. This avoids 500 errors and allows the
+    router to select a different model on retry.
+    """
 
     # Patterns that indicate garbage/training data leakage
     GARBAGE_PATTERNS = [
@@ -23,10 +29,15 @@ class GarbageResponseHandler(CustomLogger):
         r'你是一个专业的AI助手',          # Chinese system prompt template
         r'你是一个.*?AI.*?助手',          # Generic Chinese "you are an AI assistant" pattern
         r'共\s+\d+\s+条',                # Weibo-style count ("共 0 条")
+        r'Hi there! How can I help you today?',  # Generic chat bot greeting (not following instructions)
+        r'Hi! How can I help you today',         # Generic chat bot greeting variant
     ]
 
     # Responses shorter than this are likely garbage (unless empty is valid)
     MIN_CONTENT_LENGTH = 15
+
+    # Cooldown duration in seconds (must match router_settings.cooldown_time)
+    COOLDOWN_SECONDS = 600
 
     def _is_empty(self, response_obj):
         """Check if response has no meaningful content."""
@@ -90,69 +101,62 @@ class GarbageResponseHandler(CustomLogger):
         reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
         return (content or "") + " " + (reasoning or "")
 
-    def _trigger_cooldown(self, model: str, reason: str):
-        """
-        Raise litellm InternalServerError to trigger router cooldown.
-        The router will automatically add this model to cooldown based on
-        allowed_fails_policy and cooldown_time settings.
-        """
-        print(f"[GarbageResponseHandler] Marking {model} as DEAD (reason: {reason})")
+    def _mark_deployment_dead(self, deployment_id: str, reason: str):
+        """Mark a deployment as dead directly in the router cache."""
+        print(f"[GarbageResponseHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason})")
 
-        # Raise InternalServerError to trigger router's cooldown mechanism
-        raise litellm.InternalServerError(
-            message=f"Garbage response detected: {reason}",
-            model=model,
-            llm_provider="unknown",  # Will be filled by router
-        )
+        # Get the router instance (if available)
+        # Note: This accesses LiteLLM's internal router cache
+        try:
+            from litellm.proxy.proxy_server import master_router
+            if master_router and hasattr(master_router, 'cache'):
+                master_router.cache.set_cache(
+                    key=f"deployment:{deployment_id}:cooldown",
+                    value={"status": "cooldown", "exception_status": "500"},
+                    ttl=self.COOLDOWN_SECONDS,
+                )
+                print(f"[GarbageResponseHandler] Deployment marked as dead for {self.COOLDOWN_SECONDS}s")
+        except Exception as e:
+            print(f"[GarbageResponseHandler] Warning: Could not mark deployment dead: {e}")
 
-    def log_success_event(self, kwargs, response_obj, start_time, end_time):
-        """Sync path: check response quality, trigger cooldown if garbage."""
-        if self._is_empty(response_obj):
-            model = kwargs.get("model", "unknown")
-            self._trigger_cooldown(model, "empty_response")
-
-        content = self._get_content(response_obj)
-        expect_json = self._expects_json(kwargs)
-        is_garbage, reason = self._looks_like_garbage(content, expect_json)
-        if is_garbage:
-            model = kwargs.get("model", "unknown")
-            self._trigger_cooldown(model, reason)
+    def _get_deployment_id(self, response_obj) -> str:
+        """Extract deployment ID from response object if available."""
+        # LiteLLM may add _deployment_id to the response
+        return getattr(response_obj, '_deployment_id', None) or getattr(response_obj, 'model', '')
 
     async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
-        """Async path: same checks for async completion."""
+        """Async path: check response quality, mark deployment dead if garbage."""
+        model = kwargs.get("model", "unknown")
+
         if self._is_empty(response_obj):
-            model = kwargs.get("model", "unknown")
-            self._trigger_cooldown(model, "empty_response")
+            deployment_id = self._get_deployment_id(response_obj) or model
+            self._mark_deployment_dead(deployment_id, "empty_response")
+            return
 
         content = self._get_content(response_obj)
         expect_json = self._expects_json(kwargs)
         is_garbage, reason = self._looks_like_garbage(content, expect_json)
+
         if is_garbage:
-            model = kwargs.get("model", "unknown")
-            self._trigger_cooldown(model, reason)
+            deployment_id = self._get_deployment_id(response_obj) or model
+            self._mark_deployment_dead(deployment_id, reason)
 
     async def async_post_call_success_hook(self, data, user_api_key_dict, response):
-        """Proxy-level guard: rejects garbage before it reaches the client."""
-        # DEBUG: Log that we're checking
+        """Proxy-level guard: marks garbage responses as dead before they reach the client."""
         model = data.get("model", "unknown") if isinstance(data, dict) else "unknown"
-        print(f"[GarbageResponseHandler] Checking response from {model}")
 
         if self._is_empty(response):
-            self._trigger_cooldown(model, "empty_response")
+            deployment_id = self._get_deployment_id(response) or model
+            self._mark_deployment_dead(deployment_id, "empty_response")
+            return response
 
         content = self._get_content(response)
         expect_json = self._expects_json(data) if isinstance(data, dict) else False
-
-        # DEBUG: Log content preview
-        preview = content[:200] if content else "<empty>"
-        print(f"[GarbageResponseHandler] Content preview: {preview}")
-
         is_garbage, reason = self._looks_like_garbage(content, expect_json)
+
         if is_garbage:
-            print(f"[GarbageResponseHandler] GARBAGE DETECTED: {reason}")
-            self._trigger_cooldown(model, reason)
-        else:
-            print(f"[GarbageResponseHandler] Content OK")
+            deployment_id = self._get_deployment_id(response) or model
+            self._mark_deployment_dead(deployment_id, reason)
 
         return response
 
