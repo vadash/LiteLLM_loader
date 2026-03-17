@@ -265,14 +265,21 @@ router_settings:
   routing_strategy_args:
     lowest_latency_buffer: 0.3
 
-  # ── Fallback behavior (with num_retries: 0) ────────────────────────────────
-  # Important: Use specific model IDs as fallbacks, not group names.
-  # Groups like "qwen3x" would need their own fallbacks defined, causing cycles.
-  # Instead, we list explicit fallback models that can independently retry.
+  # ── Fallback behavior with groups ───────────────────────────────────────────
+  # Groups can fallback to other groups, creating a chain.
+  # Each group that appears in a fallback list must have its own fallbacks.
+  #
+  # Chain: FASTER → qwen3x → kimi2 → ds3x → cerebras → longcat → qwen-coder
   fallbacks:
-    - FAST: ["kimi-k2-new", "kimi-k2-old", "cerebras", "ds32", "ds31", "longcat", "qwen-coder"]
-    - SMART: ["qwen-80b", "qwen-122b", "cerebras", "ds32", "ds31", "qwen-coder", "longcat"]
-    - FASTER: ["qwen-80b", "qwen-122b", "kimi-k2-new", "kimi-k2-old", "cerebras", "ds32", "ds31", "ds31t", "longcat", "qwen-coder"]
+    # Main user-facing groups
+    - FAST: ["kimi2", "ds3x", "cerebras", "longcat", "qwen-coder"]
+    - SMART: ["qwen3x", "ds3x", "cerebras", "longcat", "qwen-coder"]
+    - FASTER: ["qwen3x", "kimi2", "ds3x", "cerebras", "longcat", "qwen-coder"]
+
+    # Reusable fallback groups - each has its own fallback chain
+    - qwen3x: ["kimi2", "ds3x", "cerebras", "longcat", "qwen-coder"]
+    - kimi2: ["ds3x", "cerebras", "longcat", "qwen-coder"]
+    - ds3x: ["cerebras", "longcat", "qwen-coder"]
 
   num_retries: 0
   enable_pre_call_checks: true
