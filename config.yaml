@@ -138,6 +138,71 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
+  # ── User-facing group: FASTER = latency-based routing across X models ───────
+  - model_name: FASTER
+    litellm_params:
+      model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: FASTER
+    litellm_params:
+      model: openai/nvidia:qwen/qwen3.5-122b-a10b
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: FASTER
+    litellm_params:
+      model: openai/cerebras:qwen-3-235b-a22b-instruct-2507
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: FASTER
+    litellm_params:
+      model: openai/nvidia:deepseek-ai/deepseek-v3.2
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: FASTER
+    litellm_params:
+      model: openai/nvidia:deepseek-ai/deepseek-v3.1
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: FASTER
+    litellm_params:
+      model: openai/nvidia:deepseek-ai/deepseek-v3.1-terminus
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: FASTER
+    litellm_params:
+      model: openai/nvidia:moonshotai/kimi-k2-instruct-0905
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: FASTER
+    litellm_params:
+      model: openai/nvidia:moonshotai/kimi-k2-instruct
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
   # ── Reusable fallback groups ─────────────────────────────────────────────────
   - model_name: qwen3x
     litellm_params:
@@ -200,11 +265,16 @@ router_settings:
   routing_strategy_args:
     lowest_latency_buffer: 0.3
 
+  # ── Fallback behavior (with num_retries: 0) ────────────────────────────────
+  # 1. Pick fastest model from group (e.g., FASTER's 8 models)
+  # 2. If fails → immediately try next fallback (no retry on same model)
+  # 3. Each fallback group (qwen3x, kimi2) also uses latency-based routing internally
   fallbacks:
     - FAST: ["kimi2", "cerebras", "ds3x", "longcat", "qwen-coder"]
     - SMART: ["qwen3x", "cerebras", "ds3x", "qwen-coder", "longcat"]
+    - FASTER: ["qwen3x", "kimi2", "longcat", "cerebras", "qwen-coder"]
 
-  num_retries: 1
+  num_retries: 0
   enable_pre_call_checks: true
   allowed_fails: 2
   cooldown_time: 120
