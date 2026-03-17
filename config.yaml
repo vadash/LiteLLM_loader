@@ -202,7 +202,7 @@ router_settings:
   fallbacks:
     # Main user-facing groups
     - FAST: ["kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
-    - SMART: ["qwen3x", "kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
+    - SMART: ["zai_glm47", "qwen3x", "kimi2", "qwen-coder", "longcat", "cerebras"]
 
     # Reusable fallback groups - each has its own fallback chain
     - qwen3x: ["kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
