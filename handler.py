@@ -105,19 +105,20 @@ class GarbageResponseHandler(CustomLogger):
         """Mark a deployment as dead directly in the router cache."""
         print(f"[GarbageResponseHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason})")
 
-        # Access router via litellm module-level singleton (avoid proxy_server imports)
+        # Try importing llm_router from proxy_server (the actual router instance)
         try:
-            import litellm
-            router = getattr(litellm, 'router', None)
-            if router and hasattr(router, 'cache'):
-                router.cache.set_cache(
+            from litellm.proxy.proxy_server import llm_router
+            if llm_router and hasattr(llm_router, 'cache'):
+                llm_router.cache.set_cache(
                     key=f"deployment:{deployment_id}:cooldown",
                     value={"status": "cooldown", "exception_status": "500"},
                     ttl=self.COOLDOWN_SECONDS,
                 )
                 print(f"[GarbageResponseHandler] Deployment marked as dead for {self.COOLDOWN_SECONDS}s")
             else:
-                print("[GarbageResponseHandler] Warning: litellm.router not available")
+                print("[GarbageResponseHandler] Warning: llm_router has no cache attribute")
+        except ImportError as e:
+            print(f"[GarbageResponseHandler] Warning: Could not import llm_router: {e}")
         except Exception as e:
             print(f"[GarbageResponseHandler] Warning: Could not mark deployment dead: {e}")
 
