@@ -14,7 +14,7 @@ WHAT WORKS (as of 2026-03-17)
    prompts, generic greetings, empty responses, missing JSON structure
 ✅ Cooldown marking: Writes to router.cooldown_cache directly
 ✅ Router respects cooldown: Dead deployments are not selected again
-✅ Fallback chains: FASTER → qwen3x → kimi2 → ds3x → cerebras → longcat → qwen-coder
+✅ Fallback chains: FAST/SMART → qwen3x → kimi2 → zai_glm47 → longcat → qwen-coder → cerebras
 ✅ Graceful degradation: Returns 200 OK even when garbage detected
 ✅ Streaming support: async_log_stream_complete_event for stream: true requests
 
@@ -38,7 +38,7 @@ Attempt 3: Direct cooldown_cache.add_deployment_to_cooldown() → SUCCESS ✅
 REQUIREMENTS
 ------------
 - LiteLLM proxy config must have:
-  - router_settings.cooldown_time: 600 (matches COOLDOWN_SECONDS here)
+  - router_settings.cooldown_time: 900 (matches COOLDOWN_SECONDS here)
   - router_settings.allowed_fails: 1
   - router_settings.allowed_fails_policy.InternalServerErrorAllowedFails: 1
   - litellm_settings.callbacks: ["handler.custom_handler"]
@@ -85,7 +85,7 @@ class GarbageResponseHandler(CustomLogger):
     ]
 
     MIN_CONTENT_LENGTH = 15
-    COOLDOWN_SECONDS = 600
+    COOLDOWN_SECONDS = 900
 
     def _is_empty(self, response_obj):
         if not hasattr(response_obj, "choices") or not response_obj.choices:

@@ -23,14 +23,20 @@ The VBS scripts use `.litellm.pid` to track the running process — only the exa
 
 ## Architecture
 
-### Ordered Fallback Routing (`config.yaml`)
+### Latency-Based Fallback Routing (`config.yaml`)
 
-Each model has a **unique `model_name`** to enable deterministic top-to-bottom fallback — not random selection among same-name deployments.
+Models are organized into **user-facing groups** (`FAST`, `SMART`) and **reusable fallback groups** (`qwen3x`, `kimi2`, `zai_glm47`). The router uses latency-based routing to pick the fastest deployment within each group.
 
-Fallback chain (primary → last resort):
-`qwen-80b` → `qwen-122b` → `kimi-k2-new` → `kimi-k2-old` → `cerebras` → `longcat`
+**User-facing groups:**
+- `FAST` — lowest latency of 2 Qwen models (qwen3x)
+- `SMART` — lowest latency of 2 GLM models
 
-The router tries the primary model first. On failure it cascades through fallbacks in order. Models that exceed `allowed_fails` are put in cooldown for `cooldown_time` seconds and skipped via `enable_pre_call_checks`.
+**Fallback chain** (primary → last resort):
+```
+FAST/SMART → qwen3x → kimi2 → zai_glm47 → longcat → qwen-coder → cerebras
+```
+
+Each group that appears in a fallback list **must have its own fallback entry**. The chain terminates at `cerebras: []`.
 
 ### Empty Response Handler (`handler.py`)
 

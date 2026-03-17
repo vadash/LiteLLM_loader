@@ -8,21 +8,21 @@
 # templates, system prompt leaks) and marks deployments as dead for 10 minutes.
 #
 # VISUAL HIERARCHY:
-#            FASTER (user request)
+#            FAST (user request)
 #               |
-#        +------+------+------+
-#        |      |      |      |
-#     qwen3x  kimi2  ds3x  [direct...]
+#        +------+------+
 #        |      |      |
-#        +-kimi2  ds3x  cerebras
+#     qwen3x  kimi2  zai_glm47
+#        |      |      |
+#        +-kimi2  zai_glm47 longcat
 #           |      |      |
-#        ds3x  cerebras longcat
+#        zai_glm47 longcat qwen-coder
 #           |      |      |
-#        cerebras longcat qwen-coder
+#        longcat qwen-coder cerebras
 #           |      |
-#        longcat qwen-coder
+#        qwen-coder cerebras
 #           |
-#        qwen-coder
+#        cerebras
 #
 # IMPORTANT SETTINGS:
 # - router_settings.cooldown_time: 600 (must match handler.py COOLDOWN_SECONDS)
@@ -82,30 +82,6 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: ds32
-    litellm_params:
-      model: openai/nvidia:deepseek-ai/deepseek-v3.2
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: ds31
-    litellm_params:
-      model: openai/nvidia:deepseek-ai/deepseek-v3.1
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: ds31t
-    litellm_params:
-      model: openai/nvidia:deepseek-ai/deepseek-v3.1-terminus
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
   - model_name: glm50
     litellm_params:
       model: openai/nvidia:z-ai/glm5
@@ -138,7 +114,7 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: zai_glm_47
+  - model_name: zai_glm47
     litellm_params:
       model: anthropic/claude-opus-4-6
       api_base: "https://api.z.ai/api/anthropic"
@@ -181,71 +157,6 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  # ── User-facing group: FASTER = latency-based routing across X models ───────
-  - model_name: FASTER
-    litellm_params:
-      model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: FASTER
-    litellm_params:
-      model: openai/nvidia:qwen/qwen3.5-122b-a10b
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: FASTER
-    litellm_params:
-      model: openai/cerebras:qwen-3-235b-a22b-instruct-2507
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: FASTER
-    litellm_params:
-      model: openai/nvidia:deepseek-ai/deepseek-v3.2
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: FASTER
-    litellm_params:
-      model: openai/nvidia:deepseek-ai/deepseek-v3.1
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: FASTER
-    litellm_params:
-      model: openai/nvidia:deepseek-ai/deepseek-v3.1-terminus
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: FASTER
-    litellm_params:
-      model: openai/nvidia:moonshotai/kimi-k2-instruct-0905
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: FASTER
-    litellm_params:
-      model: openai/nvidia:moonshotai/kimi-k2-instruct
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
   # ── Reusable fallback groups ─────────────────────────────────────────────────
   - model_name: qwen3x
     litellm_params:
@@ -258,30 +169,6 @@ model_list:
   - model_name: qwen3x
     litellm_params:
       model: openai/nvidia:qwen/qwen3.5-122b-a10b
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: ds3x
-    litellm_params:
-      model: openai/nvidia:deepseek-ai/deepseek-v3.2
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: ds3x
-    litellm_params:
-      model: openai/nvidia:deepseek-ai/deepseek-v3.1
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: ds3x
-    litellm_params:
-      model: openai/nvidia:deepseek-ai/deepseek-v3.1-terminus
       api_base: os.environ/NVIDIA_API_BASE
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
@@ -311,20 +198,19 @@ router_settings:
   # ── Fallback behavior with groups ───────────────────────────────────────────
   # Groups can fallback to other groups, creating a chain.
   # Each group that appears in a fallback list must have its own fallbacks.
-  # Chain: FASTER → qwen3x → kimi2 → ds3x → cerebras → longcat → qwen-coder
+  # Chain: FAST → qwen3x → kimi2 → zai_glm47 → longcat → qwen-coder → cerebras
   fallbacks:
     # Main user-facing groups
-    - FAST: ["kimi2", "ds3x", "cerebras", "longcat", "qwen-coder"]
-    - SMART: ["qwen3x", "ds3x", "cerebras", "longcat", "qwen-coder"]
-    - FASTER: ["qwen3x", "kimi2", "ds3x", "cerebras", "longcat", "qwen-coder"]
+    - FAST: ["kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
+    - SMART: ["qwen3x", "kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
 
     # Reusable fallback groups - each has its own fallback chain
-    - qwen3x: ["kimi2", "ds3x", "cerebras", "longcat", "qwen-coder"]
-    - kimi2: ["ds3x", "cerebras", "longcat", "qwen-coder"]
-    - ds3x: ["cerebras", "longcat", "qwen-coder"]
-    - cerebras: ["longcat", "qwen-coder"]
-    - longcat: ["qwen-coder"]
-    - qwen-coder: []
+    - qwen3x: ["kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
+    - kimi2: ["zai_glm47", "longcat", "qwen-coder", "cerebras"]
+    - zai_glm47: ["longcat", "qwen-coder", "cerebras"]
+    - longcat: ["qwen-coder", "cerebras"]
+    - qwen-coder: ["cerebras"]
+    - cerebras: []
 
   timeout: 60
   num_retries: 0
