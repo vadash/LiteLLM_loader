@@ -123,6 +123,15 @@ model_list:
         type: enabled
         budget_tokens: 2048
 
+  - model_name: ali_glm50
+    litellm_params:
+      model: anthropic/glm-5
+      api_base: os.environ/ALIBABA_API_BASE
+      api_key: os.environ/ALIBABA_API_KEY
+      thinking:
+        type: enabled
+        budget_tokens: 2048      
+
   # ── User-facing group: FAST = lowest latency of 2 Qwens ────────────────────
   - model_name: FAST
     litellm_params:
@@ -221,6 +230,7 @@ router_settings:
     - longcat: ["qwen-coder", "cerebras"]
     - qwen-coder: ["cerebras"]
     - cerebras: []
+    - ali_glm50: []
 
   timeout: 180
   num_retries: 0
