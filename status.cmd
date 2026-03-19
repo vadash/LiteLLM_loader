@@ -1,2 +1,3 @@
 @echo off
 python "%~dp0litellm_ctl.py" status %*
+timeout 5
