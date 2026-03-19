@@ -5,35 +5,8 @@ LiteLLM Garbage Response Handler
 WHAT THIS DOES
 --------------
 Detects garbage responses from low-quality LLMs (training data leakage, HTML
-templates, empty responses, system prompt leaks) and marks the deployment as
-"dead" for 10 minutes. Router will skip dead deployments and use fallbacks.
-
-WHAT WORKS (as of 2026-03-17)
------------------------------
-✅ Garbage detection: PHP code, leaked HTML documents, Weibo patterns, Chinese system
-   prompts, generic greetings, empty responses, missing JSON structure
-✅ Cooldown marking: Writes to router.cooldown_cache directly
-✅ Router respects cooldown: Dead deployments are not selected again
-✅ Fallback chains: FAST/SMART → qwen3x → kimi2 → zai_glm47 → longcat → qwen-coder → cerebras
-✅ Graceful degradation: Returns 200 OK even when garbage detected
-✅ Streaming support: async_log_stream_complete_event for stream: true requests
-
-DEBUGGING JOURNEY (for future reference)
------------------------------------------
-Attempt 1: Used _set_cooldown_deployments() → FAILED
-  - Function is gated by fail counter, needs threshold to be exceeded first
-  - Returns False on first call, never writes to cooldown cache
-
-Attempt 2: Write to router.cache with key "deployment:{id}:cooldown" → FAILED
-  - Wrong cache! Router has TWO caches:
-    - router.cache (response/latency cache) ❌
-    - router.cooldown_cache (CooldownCache instance) ✅
-  - Selection logic reads from cooldown_cache, not response cache
-
-Attempt 3: Direct cooldown_cache.add_deployment_to_cooldown() → SUCCESS ✅
-  - Bypasses counter-based gating
-  - Writes to correct cache that router checks during selection
-  - Use SHA256 deployment ID from kwargs["litellm_params"]["model_info"]["id"]
+templates, empty responses, system prompt leaks, AI refusals) and marks the 
+deployment as "dead" for 10 minutes. Router will skip dead deployments and use fallbacks.
 
 REQUIREMENTS
 ------------
@@ -57,17 +30,9 @@ import re
 class GarbageResponseHandler(CustomLogger):
     """
     Detects garbage responses and marks deployments as dead.
-
-    Patterns matched:
-    - PHP code (<?php, namespace App\\, Illuminate\\)
-    - Leaked HTML documents (<!DOCTYPE at start, <html at start)
-    - System prompt leaks (<system>, 你是一个.*?AI.*?助手)
-    - Empty responses (no content, no reasoning)
-    - Generic greetings ("Hi! How can I help you today")
-    - Missing JSON structure (when JSON format was requested but no brackets found)
-    - Streaming responses (via async_log_stream_complete_event)
     """
 
+    # Patterns indicating raw training data, code leakage, or system leaks
     GARBAGE_PATTERNS = [
         r'<\?php',
         r'<!--\s*BEGIN\s+WEIBO',
@@ -80,8 +45,40 @@ class GarbageResponseHandler(CustomLogger):
         r'你是一个专业的AI助手',
         r'你是一个.*?AI.*?助手',
         r'共\s+\d+\s+条',
-        r'Hi there! How can I help you today?',
-        r'Hi! How can I help you today',
+        r'Hi there! How can I help you today\?',
+        r'Hi! How can I help you today\?',
+        
+        # Useless responses: AI waiting for input (ignoring the provided prompt)
+        r'Please provide the (?:text|context|details) you(?: would like|\'d like)',
+        r'Пожалуйста, предоставьте (?:текст|контекст)',
+        r'请提供(?:相关|更多)?的(?:文本|信息|上下文)',
+    ]
+
+    # Patterns indicating AI refusals and policy disclaimers.
+    # Anchored tightly to AI-specific phrasing to avoid false positives on RP dialogue.
+    REFUSAL_PATTERNS = [
+        # English
+        r"(?:As an|I am an) AI (?:language model|assistant)",
+        r"I can(?:not|'t) (?:fulfill|comply with|process) (?:this|your) request",
+        r"against my (?:programming|guidelines|safety|ethical|core) (?:principles|policies|guidelines)",
+        r"violate(?:s)? (?:safety|OpenAI|Anthropic|guidelines|policies)",
+        r"I can(?:not|'t) (?:generate|create|provide|write) (?:content|text|responses|stories|JSON) that (?:is|depicts|involves)",
+        r"I(?:'m| am) sorry, (?:but )?I can(?:not|'t) (?:assist|help) with that",
+        
+        # Russian
+        r"Как искусственный интеллект",
+        r"Я не могу (?:выполнить|обработать) (?:этот )?запрос",
+        r"противоречит (?:моим )?(?:правилам|политике|этическим)",
+        r"нарушает (?:правила|политику|принципы) (?:безопасности|OpenAI|Anthropic)",
+        r"Я не могу (?:создавать|генерировать|предоставлять) контент, который",
+        r"Извините, но я не могу (?:помочь|выполнить|сгенерировать|предоставить)",
+        
+        # Chinese
+        r"作为一个(?:人工智能|AI|语言模型)",
+        r"抱歉，我无法(?:满足|处理)(?:您|你)的请求",
+        r"我无法为(?:您|你)(?:生成|提供|创建)",
+        r"违反(?:了)?(?:相关|使用)?(?:政策|规定|准则|法律|安全)",
+        r"我不能(?:协助|提供)(?:此类|这方面)的",
     ]
 
     MIN_CONTENT_LENGTH = 15
@@ -98,18 +95,27 @@ class GarbageResponseHandler(CustomLogger):
     def _looks_like_garbage(self, content: str, expect_json: bool = False) -> tuple[bool, str]:
         if not content or len(content.strip()) < self.MIN_CONTENT_LENGTH:
             return True, "too_short"
-        content_lower = content.lower()
+            
+        # Check standard garbage/leak patterns
         for pattern in self.GARBAGE_PATTERNS:
             if re.search(pattern, content, re.IGNORECASE):
-                return True, f"pattern_match:{pattern}"
+                return True, f"garbage_match:{pattern[:20]}..."
+                
+        # Check AI refusal/disclaimer patterns
+        for pattern in self.REFUSAL_PATTERNS:
+            if re.search(pattern, content, re.IGNORECASE):
+                return True, f"refusal_match:{pattern[:20]}..."
+
         # Only flag full leaked HTML documents, not code snippets
         if re.match(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', content, re.IGNORECASE):
             return True, "leaked_html_document"
+            
         # Loose JSON check: only flag if model completely failed to produce any
         # JSON structure. Client-side repair handles syntax/truncation issues.
         if expect_json:
             if '{' not in content and '[' not in content:
                 return True, "missing_json_structure"
+                
         return False, ""
 
     def _expects_json(self, kwargs: dict) -> bool:
