@@ -7,23 +7,6 @@
 # GARBAGE DETECTION: handler.py detects training data leakage (PHP, HTML, Weibo
 # templates, system prompt leaks) and marks deployments as dead for 10 minutes.
 #
-# VISUAL HIERARCHY:
-#            FAST (user request)
-#               |
-#        +------+------+
-#        |      |      |
-#     qwen3x  kimi2  zai_glm47
-#        |      |      |
-#        +-kimi2  zai_glm47 longcat
-#           |      |      |
-#        zai_glm47 longcat qwen-coder
-#           |      |      |
-#        longcat qwen-coder cerebras
-#           |      |
-#        qwen-coder cerebras
-#           |
-#        cerebras
-#
 # IMPORTANT SETTINGS:
 # - router_settings.cooldown_time: 600 (must match handler.py COOLDOWN_SECONDS)
 # - router_settings.allowed_fails: 1
@@ -114,7 +97,7 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: zai_glm47
+  - model_name: zai_glm47_think
     litellm_params:
       model: anthropic/claude-opus-4-6
       api_base: "https://api.z.ai/api/anthropic"
@@ -123,14 +106,32 @@ model_list:
         type: enabled
         budget_tokens: 2048
 
-  - model_name: ali_glm50
+  - model_name: zai_glm47_nothink
+    litellm_params:
+      model: anthropic/claude-opus-4-6
+      api_base: "https://api.z.ai/api/anthropic"
+      api_key: os.environ/ZAI_API_KEY
+      thinking:
+        type: disabled
+        budget_tokens: 0        
+
+  - model_name: ali_glm50_think
     litellm_params:
       model: anthropic/glm-5
       api_base: os.environ/ALIBABA_API_BASE
       api_key: os.environ/ALIBABA_API_KEY
       thinking:
         type: enabled
-        budget_tokens: 2048      
+        budget_tokens: 2048
+
+  - model_name: ali_glm50_nothink
+    litellm_params:
+      model: anthropic/glm-5
+      api_base: os.environ/ALIBABA_API_BASE
+      api_key: os.environ/ALIBABA_API_KEY
+      thinking:
+        type: disabled
+        budget_tokens: 0
 
   # ── User-facing group: FAST = lowest latency of 2 Qwens ────────────────────
   - model_name: FAST
@@ -214,37 +215,39 @@ router_settings:
     lowest_latency_buffer: 0.3
 
   # ── Fallback behavior with groups ───────────────────────────────────────────
-  # Groups can fallback to other groups, creating a chain.
-  # Each group that appears in a fallback list must have its own fallbacks.
-  # Chain: FAST → qwen3x → kimi2 → zai_glm47 → longcat → qwen-coder → cerebras
+  # LiteLLM resolves fallbacks FLAT (not recursive): when FAST fails, the router
+  # iterates FAST's list directly and never consults a fallback model's own chain.
+  # Therefore every entry must list the full remaining tail of the priority order.
   fallbacks:
-    # Main user-facing groups
-    - FAST: ["kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
-    - SMART: ["qwen3x", "nvidia_glm", "kimi2", "qwen-coder", "cerebras", "longcat"]
+    # ── User-facing entry points ─────────────────────────────────────────────
+    - FAST: ["kimi2", "zai_glm47_nothink", "ali_glm50_nothink", "longcat", "cerebras"]
+    - SMART: ["qwen3x", "kimi2", "ali_glm50_think", "longcat", "cerebras"]
 
-    # Reusable fallback groups - each has its own fallback chain
-    - qwen3x: ["kimi2", "zai_glm47", "longcat", "qwen-coder", "cerebras"]
-    - nvidia_glm: ["qwen3x", "kimi2", "qwen-coder", "cerebras", "longcat"]
-    - kimi2: ["zai_glm47", "longcat", "qwen-coder", "cerebras"]
-    - zai_glm47: ["longcat", "qwen-coder", "cerebras"]
-    - longcat: ["qwen-coder", "cerebras"]
-    - qwen-coder: ["cerebras"]
-    - cerebras: []
-    - ali_glm50: []
+    # ── Reusable groups (needed only when called as direct primary model) ────
+    - qwen3x: [] # terminal — suppresses per-request lookup warning
+    - nvidia_glm: [] # terminal — suppresses per-request lookup warning
+    - kimi2: [] # terminal — suppresses per-request lookup warning
+    - zai_glm47_think: ["ali_glm50_think"] # terminal — suppresses per-request lookup warning
+    - zai_glm47_nothink: ["ali_glm50_nothink"] # terminal — suppresses per-request lookup warning
+    - longcat: [] # terminal — suppresses per-request lookup warning
+    - qwen-coder: [] # terminal — suppresses per-request lookup warning
+    - cerebras: [] # terminal — suppresses per-request lookup warning
+    - ali_glm50_think: ["zai_glm47_think"] # terminal — suppresses per-request lookup warning
+    - ali_glm50_nothink: ["zai_glm47_nothink"] # terminal — suppresses per-request lookup warning    
 
   timeout: 180
   num_retries: 0
   enable_pre_call_checks: true
-  allowed_fails: 1           # Mark as dead after 1 garbage response
-  cooldown_time: 900         # Keep provider dead for 10 minutes (600 seconds)
+  allowed_fails: 1 # Mark as dead after 1 garbage response
+  cooldown_time: 900 # Keep provider dead for 10 minutes (600 seconds)
 
   # ── Per-error-type cooldown thresholds ──────────────────────────────────────
   # InternalServerError = our garbage response trigger
   allowed_fails_policy:
-    InternalServerErrorAllowedFails: 1      # Instant cooldown on garbage
-    RateLimitErrorAllowedFails: 2           # More lenient on rate limits
-    TimeoutErrorAllowedFails: 2             # Moderate tolerance for timeouts
-    ContentPolicyViolationErrorAllowedFails: 5  # Don't kill for policy issues
+    InternalServerErrorAllowedFails: 1 # Instant cooldown on garbage
+    RateLimitErrorAllowedFails: 2 # More lenient on rate limits
+    TimeoutErrorAllowedFails: 2 # Moderate tolerance for timeouts
+    ContentPolicyViolationErrorAllowedFails: 5 # Don't kill for policy issues
 
 general_settings:
   background_health_checks: false
