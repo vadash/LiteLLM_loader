@@ -29,19 +29,23 @@ if errorlevel 1 (
 )
 echo.
 
-REM Check .env
-if not exist "%~dp0.env" (
+REM Check .env in src directory
+if not exist "%~dp0src\.env" (
     echo [WARNING] .env file not found. Creating template...
     (
         echo NVIDIA_API_BASE=https://your-api-base-url/
         echo NVIDIA_API_KEY=your-api-key-here
-    ) > "%~dp0.env"
+    ) > "%~dp0src\.env"
     echo.
-    echo Created .env file. Edit it with your API credentials before starting.
+    echo Created src\.env file. Edit it with your API credentials before starting.
 )
 
 echo.
 echo ============================================
-echo  Done! Run litellm_start.vbs to start.
+echo  Done! Usage:
+echo    start.cmd    - Start proxy (no window)
+echo    stop.cmd     - Stop proxy
+echo    status.cmd   - Check status
+echo    restart.cmd  - Restart proxy
 echo ============================================
 pause

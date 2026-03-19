@@ -4,26 +4,36 @@ LiteLLM proxy that exposes multiple free/community LLM backends behind a single 
 
 ## Setup
 
-```
-install.cmd              # check Python, install litellm, create .env template
+```bash
+install.cmd              # Windows: check Python, install litellm, create .env template
+./install.sh            # Unix: same
 ```
 
-Requires Python in PATH and a `.env` file with `NVIDIA_API_BASE` and `NVIDIA_API_KEY`.
+Requires Python in PATH and `src/.env` with `NVIDIA_API_BASE` and `NVIDIA_API_KEY`.
 
 ## Running
 
-```
-litellm_start.vbs        # start hidden (kills previous instance via PID file)
-litellm_stop.vbs         # stop running instance via PID file
-litellm_start.cmd        # start in console (normal)
-litellm_start_debug.cmd  # start in console (--debug)
+**Windows:**
+```bash
+start.cmd               # start hidden (no console window)
+stop.cmd                # stop running instance
+status.cmd              # check if running
+restart.cmd             # restart
 ```
 
-The VBS scripts use `.litellm.pid` to track the running process — only the exact process tree is killed, never other Python processes.
+**Unix:**
+```bash
+./start.sh              # start in background
+./stop.sh               # stop running instance
+./status.sh             # check if running
+./restart.sh            # restart
+```
+
+All scripts are thin wrappers around `litellm_ctl.py` which tracks the process via `src/.litellm.pid`.
 
 ## Architecture
 
-### Latency-Based Fallback Routing (`config.yaml`)
+### Latency-Based Fallback Routing (`src/config.yaml`)
 
 Models are organized into **user-facing groups** (`FAST`, `SMART`) and **reusable fallback groups** (`qwen3x`, `kimi2`, `nvidia_glm`, `zai_glm47`). The router uses latency-based routing to pick the fastest deployment within each group.
 
@@ -39,7 +49,7 @@ SMART → qwen3x → nvidia_glm → kimi2 → qwen-coder → cerebras → longca
 
 Each group that appears in a fallback list **must have its own fallback entry**. The chain terminates at `cerebras: []`.
 
-### Empty Response Handler (`handler.py`)
+### Empty Response Handler (`src/handler.py`)
 
 Custom callback that detects garbage LLM responses (empty content, training data leakage, leaked HTML documents, missing JSON structure) and marks deployments as dead via `router.cooldown_cache`. Implements four hook points:
 - `log_success_event` — sync completion path
@@ -51,7 +61,7 @@ Custom callback that detects garbage LLM responses (empty content, training data
 
 ### Fallback Chain Completeness
 
-Every model group that appears in a fallback list **must have its own fallback entry** in `config.yaml`, even if it's an empty list. Missing entries cause unhandled exception loops when that model fails. The chain terminates at `qwen-coder: []`.
+Every model group that appears in a fallback list **must have its own fallback entry** in `config.yaml`, even if it's an empty list. Missing entries cause unhandled exception loops when that model fails. The chain terminates at `cerebras: []`.
 
 ### Health Checks
 
@@ -59,4 +69,4 @@ Background health checks are enabled (`health_check_interval: 60`). Dead models 
 
 ## Adding a New Model
 
-Add a new entry in `config.yaml` with a unique `model_name`, then append it to the `fallbacks` list in `router_settings`. **Important:** if the model appears as a fallback target, it must also have its own fallback entry to avoid crash loops.
+Add a new entry in `src/config.yaml` with a unique `model_name`, then append it to the `fallbacks` list in `router_settings`. **Important:** if the model appears as a fallback target, it must also have its own fallback entry to avoid crash loops.

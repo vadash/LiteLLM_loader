@@ -1,6 +1,13 @@
-.env
-.litellm.pid
-litellm.log
+# Secrets
+src/.env
 
-/__pycache__/
+# Runtime files
+src/.litellm.pid
+src/litellm.log
+
+# Python
+__pycache__/
+*.pyc
+
+# Temp
 /tmp/
