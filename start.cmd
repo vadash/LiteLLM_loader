@@ -1,2 +1,2 @@
 @echo off
-pythonw "%~dp0litellm_ctl.py" start %*
+cscript //nologo "%~dp0start.vbs"

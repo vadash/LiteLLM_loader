@@ -142,8 +142,9 @@ def start():
     system = platform.system()
 
     if system == "Windows":
-        # Windows: use CREATE_NEW_PROCESS_GROUP and DETACHED_PROCESS
-        DETACHED_PROCESS = 0x00000008
+        # Windows: CREATE_NO_WINDOW prevents any visible console;
+        # CREATE_NEW_PROCESS_GROUP lets us kill the tree later.
+        CREATE_NO_WINDOW = 0x08000000
         CREATE_NEW_PROCESS_GROUP = 0x00000200
 
         proc = subprocess.Popen(
@@ -153,7 +154,7 @@ def start():
             stdout=log_handle,
             stderr=log_handle,
             stdin=subprocess.DEVNULL,
-            creationflags=DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP,
+            creationflags=CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP,
         )
     else:
         # Unix: use start_new_session for process group
