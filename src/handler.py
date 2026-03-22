@@ -43,7 +43,7 @@ class GarbageResponseHandler(CustomLogger):
         r"I can(?:not|'t) (?:fulfill|comply with|process) (?:this|your) request",
         r"against my (?:programming|guidelines|safety|ethical|core) (?:principles|policies|guidelines)",
         r"violate(?:s)? (?:safety|OpenAI|Anthropic|guidelines|policies)",
-        r"I can(?:not|'t) (?:generate|create|provide|write) (?:content|text|responses|stories|JSON) that (?:is|depicts|involves)",
+        r"I can(?:not|'t) (?:generate|create|provide|write) (?:content|text|responses|stories|JSON) that (?:is|depicts|involves|contains?)",
         r"I(?:'m| am) sorry, (?:but )?I can(?:not|'t) (?:assist|help) with that",
         
         # Russian
