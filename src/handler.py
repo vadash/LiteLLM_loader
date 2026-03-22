@@ -1,6 +1,20 @@
 import litellm
 from litellm.integrations.custom_logger import CustomLogger
 import re
+import pathlib
+
+LOG_FILE = pathlib.Path(__file__).parent / "litellm.log"
+
+
+def log_to_file(message: str):
+    """Append a log message with timestamp to litellm.log."""
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(f"[{timestamp}] {message}\n")
+    except Exception:
+        pass
 
 
 class GarbageResponseHandler(CustomLogger):
@@ -64,6 +78,22 @@ class GarbageResponseHandler(CustomLogger):
 
     MIN_CONTENT_LENGTH = 15
     COOLDOWN_SECONDS = 900
+
+    def _get_response_preview(self, response_obj, max_chars: int = 200) -> str:
+        """Extract first N chars from response content for logging."""
+        try:
+            if not hasattr(response_obj, "choices") or not response_obj.choices:
+                return "<no_choices>"
+            message = response_obj.choices[0].message
+            content = getattr(message, "content", None) or ""
+            reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
+            combined = content + reasoning
+            preview = combined[:max_chars].replace('\n', '\\n').replace('\r', '\\r')
+            if len(combined) > max_chars:
+                preview += "..."
+            return preview
+        except Exception as e:
+            return f"<error_extracting_preview: {e}>"
 
     def _looks_like_garbage(self, response_obj, kwargs: dict) -> tuple[bool, str]:
         """
@@ -151,10 +181,12 @@ class GarbageResponseHandler(CustomLogger):
     def _mark_deployment_dead(self, deployment_id: str, reason: str):
         """
         Injects a synthetic 500 error directly into LiteLLM's cooldown cache.
-        REASONING: Bypasses standard retry counters to instantly kill the deployment 
+        REASONING: Bypasses standard retry counters to instantly kill the deployment
         for 15 minutes, forcing immediate failover to the next model in the chain.
         """
-        print(f"[GarbageResponseHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason})")
+        msg = f"[GarbageResponseHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason})"
+        print(msg)
+        log_to_file(f"[DEPLOYMENT_DEAD] deployment={deployment_id[:16]}... reason={reason}")
         try:
             from litellm.proxy.proxy_server import llm_router
             if llm_router is None or not hasattr(llm_router, 'cooldown_cache'):
@@ -185,26 +217,49 @@ class GarbageResponseHandler(CustomLogger):
             print(f"[GarbageResponseHandler] Deployment marked dead for {self.COOLDOWN_SECONDS}s")
         except Exception as e:
             print(f"[GarbageResponseHandler] Warning: Could not mark deployment dead: {e}")
+            log_to_file(f"[ERROR] Failed to mark deployment dead: {e}")
 
     async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
         """Hook for standard (non-streaming) requests."""
         deployment_id = self._get_deployment_id(kwargs)
+
+        # Log response preview (first 200 chars)
+        preview = self._get_response_preview(response_obj)
+        model_name = kwargs.get("model", "unknown")
+        log_to_file(f"[RESPONSE] model={model_name} deployment={deployment_id[:16] if deployment_id else 'none'} preview={preview!r}")
+
         if not deployment_id:
             return
 
         is_garbage, reason = self._looks_like_garbage(response_obj, kwargs)
         if is_garbage:
+            log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
             self._mark_deployment_dead(deployment_id, reason)
 
     async def async_log_stream_complete_event(self, kwargs, response_obj, start_time, end_time):
         """Hook for streaming requests. response_obj contains the fully aggregated chunks."""
         deployment_id = self._get_deployment_id(kwargs)
+
+        # Log response preview (first 200 chars)
+        preview = self._get_response_preview(response_obj)
+        model_name = kwargs.get("model", "unknown")
+        log_to_file(f"[STREAM_COMPLETE] model={model_name} deployment={deployment_id[:16] if deployment_id else 'none'} preview={preview!r}")
+
         if not deployment_id:
             return
 
         is_garbage, reason = self._looks_like_garbage(response_obj, kwargs)
         if is_garbage:
+            log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
             self._mark_deployment_dead(deployment_id, f"stream_{reason}")
+
+    async def async_log_failure_event(self, kwargs, exception, start_time, end_time):
+        """Hook for logging failure events (errors from LiteLLM or providers)."""
+        deployment_id = self._get_deployment_id(kwargs)
+        model_name = kwargs.get("model", "unknown")
+        exception_type = type(exception).__name__ if exception else "Unknown"
+        exception_msg = str(exception)[:200] if exception else "no details"
+        log_to_file(f"[FAILURE] model={model_name} deployment={deployment_id[:16] if deployment_id else 'none'} error={exception_type}: {exception_msg!r}")
 
 
 # Register the plugin instance so LiteLLM can hook into it
