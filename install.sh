@@ -20,8 +20,8 @@ echo "Found: $(python3 --version)"
 echo
 
 # Install litellm
-echo "Installing litellm..."
-pip3 install litellm
+echo "Installing safe version of litellm (v1.82.3)..."
+pip3 install litellm[proxy]==1.82.3
 echo
 
 # Check .env in src directory

@@ -19,11 +19,11 @@ if errorlevel 1 (
 for /f "tokens=*" %%v in ('python --version 2^>^&1') do echo Found: %%v
 echo.
 
-REM Install litellm
-echo Installing litellm...
-pip install litellm
+REM Install the last safe version of litellm
+echo Installing safe version of litellm (v1.82.3)...
+pip install litellm[proxy]==1.82.3
 if errorlevel 1 (
-    echo [ERROR] Failed to install litellm.
+    echo [ERROR] Failed to install litellm v1.82.3
     pause
     exit /b 1
 )
