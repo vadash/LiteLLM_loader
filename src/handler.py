@@ -253,10 +253,15 @@ class GarbageResponseHandler(CustomLogger):
             log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
             self._mark_deployment_dead(deployment_id, f"stream_{reason}")
 
-    async def async_log_failure_event(self, kwargs, exception, start_time, end_time):
-        """Hook for logging failure events (errors from LiteLLM or providers)."""
+    async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
+        """Hook for logging failure events (errors from LiteLLM or providers).
+
+        Note: LiteLLM passes the exception as `response_obj` parameter in failure events.
+        """
         deployment_id = self._get_deployment_id(kwargs)
         model_name = kwargs.get("model", "unknown")
+        # In failure events, response_obj is the exception that was raised
+        exception = response_obj
         exception_type = type(exception).__name__ if exception else "Unknown"
         exception_msg = str(exception)[:200] if exception else "no details"
         log_to_file(f"[FAILURE] model={model_name} deployment={deployment_id[:16] if deployment_id else 'none'} error={exception_type}: {exception_msg!r}")
