@@ -184,35 +184,54 @@ def start():
         return 1
 
 
+def kill_litellm_exe():
+    """Kill any litellm.exe / litellm processes by name."""
+    system = platform.system()
+
+    if system == "Windows":
+        # Kill litellm.exe by image name
+        subprocess.run(
+            ["taskkill", "/F", "/IM", "litellm.exe"],
+            capture_output=True,
+            timeout=30
+        )
+    else:
+        # Unix: pkill litellm
+        subprocess.run(
+            ["pkill", "-f", "litellm"],
+            capture_output=True,
+            timeout=30
+        )
+
+
 def stop():
     """Stop litellm proxy."""
     pid = get_pid()
 
     if not pid:
         print("LiteLLM is not running (no PID file)")
-        return 0
-
-    if not is_process_running(pid):
+    elif not is_process_running(pid):
         print("LiteLLM is not running (stale PID file)")
         PID_FILE.unlink()
-        return 0
+    else:
+        print(f"Stopping LiteLLM (PID {pid})...")
+        kill_process_tree(pid)
 
-    print(f"Stopping LiteLLM (PID {pid})...")
-    kill_process_tree(pid)
+        # Clean up PID file
+        if PID_FILE.exists():
+            PID_FILE.unlink()
 
-    # Clean up PID file
-    if PID_FILE.exists():
-        PID_FILE.unlink()
+        # Wait for process to terminate
+        for _ in range(10):
+            if not is_process_running(pid):
+                break
+            time.sleep(0.5)
 
-    # Wait for process to terminate
-    for _ in range(10):
-        if not is_process_running(pid):
-            print("LiteLLM stopped")
-            return 0
-        time.sleep(0.5)
+    # Also kill any lingering litellm.exe / litellm processes
+    kill_litellm_exe()
 
-    print("Warning: LiteLLM may not have stopped cleanly")
-    return 1
+    print("LiteLLM stopped")
+    return 0
 
 
 def status():
