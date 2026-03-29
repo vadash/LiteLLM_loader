@@ -96,8 +96,8 @@ model_list:
   - model_name: zai_glm5.1
     litellm_params:
       model: anthropic/glm-5.1
-      api_base: os.environ/ALIBABA_API_BASE
-      api_key: os.environ/ALIBABA_API_KEY
+      api_base: "https://api.z.ai/api/anthropic"
+      api_key: os.environ/ZAI_API_KEY
 
   - model_name: ali_glm50
     litellm_params:
@@ -190,7 +190,7 @@ router_settings:
   fallbacks:
     # ── User-facing entry points ─────────────────────────────────────────────
     - FAST: ["kimi2", "zai_glm47", "ali_glm50", "longcat", "cerebras"]
-    - SMART: ["ali_glm50", "zai_glm5-turbo", "qwen3x", "kimi2", "longcat", "cerebras"]
+    - SMART: ["ali_glm50", "zai_glm5-turbo", "nvidia_glm", "qwen3x", "kimi2", "longcat", "cerebras"]
 
     # ── Reusable groups (needed only when called as direct primary model) ────
     - qwen3x: [] # terminal — suppresses per-request lookup warning
@@ -200,8 +200,18 @@ router_settings:
     - qwen-coder: [] # terminal — suppresses per-request lookup warning
     - cerebras: [] # terminal — suppresses per-request lookup warning
     - zai_glm47: ["zai_glm5-turbo", "ali_glm50"]
+    - qwen-80b: []
+    - qwen-122b: []
+    - kimi-k2-new: []
+    - kimi-k2-old: []
+    - zai_glm5.1: []
+    - mistral: []
     - ali_glm50: ["zai_glm47", "zai_glm5-turbo"]
     - zai_glm5-turbo: ["zai_glm47", "ali_glm50"]
+
+  content_policy_fallbacks:
+    - FAST: ["kimi2", "zai_glm47", "ali_glm50", "longcat", "cerebras"]
+    - SMART: ["ali_glm50", "zai_glm5-turbo", "nvidia_glm", "qwen3x", "kimi2", "longcat", "cerebras"]
 
   timeout: 180
   num_retries: 0
