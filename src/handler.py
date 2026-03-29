@@ -253,12 +253,12 @@ class UniversalGarbageHandler(CustomLogger):
         deployment_id = self._get_deployment_id(kwargs)
         model_name = kwargs.get("model", "unknown")
         
-        exception = response_obj
+        # LiteLLM passes exceptions via kwargs in failure events
+        exception = kwargs.get("exception") or kwargs.get("original_exception") or response_obj
         exception_type = type(exception).__name__ if exception else "Unknown"
         exception_msg = str(exception)[:200] if exception else "no details"
         
         log_to_file(f"[PROVIDER_FAILURE] model={model_name} deploy={deployment_id[:12]} error={exception_type}: {exception_msg!r}")
-
 
 # Register the plugin instance so LiteLLM can hook into it
 custom_handler = UniversalGarbageHandler()
