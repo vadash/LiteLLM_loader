@@ -2,7 +2,28 @@ import litellm
 from litellm.integrations.custom_logger import CustomLogger
 import re
 import pathlib
+import logging
 from datetime import datetime
+
+# =========================================================================
+# SILENCE NOISY LITELLM TRACEBACKS IN THE CONSOLE
+# =========================================================================
+class SuppressNoisyRouterErrors(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        # Block the massive traceback dump when a fallback occurs
+        if "Error occurred while trying to do fallbacks" in msg:
+            return False
+        # Block any orphaned tracebacks related to BadGateway/BadRequest
+        if "Traceback (most recent call last):" in msg and "OpenAIException" in msg:
+            return False
+        return True
+
+# Attach the silencer to LiteLLM's internal loggers
+logging.getLogger("LiteLLM Router").addFilter(SuppressNoisyRouterErrors())
+logging.getLogger("LiteLLM").addFilter(SuppressNoisyRouterErrors())
+logging.getLogger("litellm").addFilter(SuppressNoisyRouterErrors())
+# =========================================================================
 
 LOG_FILE = pathlib.Path(__file__).parent / "litellm.log"
 
