@@ -27,24 +27,6 @@ class GarbageResponseHandler(CustomLogger):
     # These catch raw training data leakage, web scraping artifacts, and models 
     # that get stuck in "assistant" loops where they ask for a prompt you already gave.
     GARBAGE_PATTERNS = [
-        r'<\?php',
-        r'<!--\s*BEGIN\s+WEIBO',
-        r'namespace\s+App\\',
-        r'class\s+\w+Controller',
-        r'Illuminate\\',
-        r'use\s+Illuminate\\',
-        r'<system>',
-        r'</system>',
-        r'你是一个专业的AI助手',
-        r'你是一个.*?AI.*?助手',
-        r'共\s+\d+\s+条',
-        r'Hi there! How can I help you today\?',
-        r'Hi! How can I help you today\?',
-        
-        # Useless responses: AI waiting for input (ignoring the provided context)
-        r'Please provide the (?:text|context|details) you(?: would like|\'d like)',
-        r'Пожалуйста, предоставьте (?:текст|контекст)',
-        r'请提供(?:相关|更多)?的(?:文本|信息|上下文)',
     ]
 
     # PATTERN REASONING:
