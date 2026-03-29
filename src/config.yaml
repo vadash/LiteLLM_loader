@@ -65,22 +65,6 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: glm50
-    litellm_params:
-      model: openai/nvidia:z-ai/glm5
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: glm47
-    litellm_params:
-      model: openai/nvidia:z-ai/glm4.7
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
   - model_name: mistral
     litellm_params:
       model: openai/mistral:mistral
@@ -97,31 +81,25 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: zai_glm47_think
+  - model_name: zai_glm47
     litellm_params:
-      model: anthropic/claude-opus-4-6
-      api_base: "https://api.z.ai/api/anthropic"
-      api_key: os.environ/ZAI_API_KEY
-      thinking:
-        type: enabled
-        budget_tokens: 2048
-
-  - model_name: zai_glm47_nothink
-    litellm_params:
-      model: anthropic/claude-opus-4-6
+      model: anthropic/glm-4.7
       api_base: "https://api.z.ai/api/anthropic"
       api_key: os.environ/ZAI_API_KEY      
 
-  - model_name: ali_glm50_think
+  - model_name: zai_glm5-turbo
     litellm_params:
-      model: anthropic/glm-5
+      model: anthropic/glm-5-turbo
+      api_base: "https://api.z.ai/api/anthropic"
+      api_key: os.environ/ZAI_API_KEY
+
+  - model_name: zai_glm5.1
+    litellm_params:
+      model: anthropic/glm-5.1
       api_base: os.environ/ALIBABA_API_BASE
       api_key: os.environ/ALIBABA_API_KEY
-      thinking:
-        type: enabled
-        budget_tokens: 2048
 
-  - model_name: ali_glm50_nothink
+  - model_name: ali_glm50
     litellm_params:
       model: anthropic/glm-5
       api_base: os.environ/ALIBABA_API_BASE
@@ -147,12 +125,9 @@ model_list:
   # ── User-facing group: SMART = alias for zai_glm47 (Claude via z.ai) ─────────
   - model_name: SMART
     litellm_params:
-      model: anthropic/claude-opus-4-6
+      model: anthropic/glm-4.7
       api_base: "https://api.z.ai/api/anthropic"
       api_key: os.environ/ZAI_API_KEY
-      thinking:
-        type: enabled
-        budget_tokens: 2048
 
   # ── Reusable fallback groups ─────────────────────────────────────────────────
   - model_name: nvidia_glm
@@ -214,20 +189,19 @@ router_settings:
   # Therefore every entry must list the full remaining tail of the priority order.
   fallbacks:
     # ── User-facing entry points ─────────────────────────────────────────────
-    - FAST: ["kimi2", "zai_glm47_nothink", "ali_glm50_nothink", "longcat", "cerebras"]
-    - SMART: ["qwen3x", "kimi2", "ali_glm50_think", "longcat", "cerebras"]
+    - FAST: ["kimi2", "zai_glm47", "ali_glm50", "longcat", "cerebras"]
+    - SMART: ["ali_glm50", "zai_glm5-turbo", "qwen3x", "kimi2", "longcat", "cerebras"]
 
     # ── Reusable groups (needed only when called as direct primary model) ────
     - qwen3x: [] # terminal — suppresses per-request lookup warning
     - nvidia_glm: [] # terminal — suppresses per-request lookup warning
     - kimi2: [] # terminal — suppresses per-request lookup warning
-    - zai_glm47_think: ["ali_glm50_think"] # terminal — suppresses per-request lookup warning
-    - zai_glm47_nothink: ["ali_glm50_nothink"] # terminal — suppresses per-request lookup warning
     - longcat: [] # terminal — suppresses per-request lookup warning
     - qwen-coder: [] # terminal — suppresses per-request lookup warning
     - cerebras: [] # terminal — suppresses per-request lookup warning
-    - ali_glm50_think: ["zai_glm47_think"] # terminal — suppresses per-request lookup warning
-    - ali_glm50_nothink: ["zai_glm47_nothink"] # terminal — suppresses per-request lookup warning    
+    - zai_glm47: ["zai_glm5-turbo", "ali_glm50"]
+    - ali_glm50: ["zai_glm47", "zai_glm5-turbo"]
+    - zai_glm5-turbo: ["zai_glm47", "ali_glm50"]
 
   timeout: 180
   num_retries: 0
