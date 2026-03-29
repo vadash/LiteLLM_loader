@@ -233,15 +233,30 @@ router_settings:
   num_retries: 0
   enable_pre_call_checks: true
   allowed_fails: 1 # Mark as dead after 1 garbage response
-  cooldown_time: 900 # Keep provider dead for 10 minutes (600 seconds)
+  cooldown_time: 600 # Keep provider dead for 10 minutes (600 seconds)
 
   # ── Per-error-type cooldown thresholds ──────────────────────────────────────
   # InternalServerError = our garbage response trigger
+  # Defines how many times specific HTTP errors can occur before a model is put on cooldown and bypassed
   allowed_fails_policy:
-    InternalServerErrorAllowedFails: 1 # Instant cooldown on garbage
-    RateLimitErrorAllowedFails: 2 # More lenient on rate limits
-    TimeoutErrorAllowedFails: 2 # Moderate tolerance for timeouts
-    ContentPolicyViolationErrorAllowedFails: 5 # Don't kill for policy issues
+    
+    # Trips after 1 failure. Catches 500 errors, including the synthetic 500 errors injected by your custom handler.py when it detects garbage/refusals.
+    InternalServerErrorAllowedFails: 1 
+    
+    # Trips after 1 failure. CRITICAL FOR KIMI2: Catches HTTP 400 errors (like NVIDIA rejecting a prompt for strict safety or context limits) so the fallback chain continues instead of halting.
+    BadRequestErrorAllowedFails: 1  
+    
+    # Trips after 1 failure. CRITICAL FOR KIMI2: Catches HTTP 502 errors (Bad Gateway) which happens when the connection to the provider outright fails or drops.
+    BadGatewayErrorAllowedFails: 1  
+    
+    # Trips after 2 failures. Gives the model a slight 2-strike buffer for temporary HTTP 429 rate limits before marking it as dead.
+    RateLimitErrorAllowedFails: 2 
+    
+    # Trips after 2 failures. Allows a 2-strike grace period if a model is just temporarily congested and slow to respond.
+    TimeoutErrorAllowedFails: 2 
+    
+    # Trips after 1 failure. If a provider explicitly flags the prompt for safety violations, instantly failover to the next (potentially less censored) model in the chain.
+    ContentPolicyViolationErrorAllowedFails: 1
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
