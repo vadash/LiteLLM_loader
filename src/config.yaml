@@ -208,6 +208,7 @@ router_settings:
     - mistral: []
     - ali_glm50: ["zai_glm47", "zai_glm5-turbo"]
     - zai_glm5-turbo: ["zai_glm47", "ali_glm50"]
+    - zai_glm5.1: ["zai_glm47", "zai_glm5-turbo", "ali_glm50"]
 
   content_policy_fallbacks:
     - FAST: ["kimi2", "zai_glm47", "ali_glm50", "longcat", "cerebras"]
