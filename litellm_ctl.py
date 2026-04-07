@@ -150,6 +150,7 @@ def start():
     # Load environment
     env = os.environ.copy()
     env.update(load_env())
+    env.setdefault("PYTHONIOENCODING", "utf-8")
 
     # Prepare log file
     log_handle = open(LOG_FILE, "w", encoding="utf-8")
