@@ -1,3 +1,3 @@
 @echo off
-python "%~dp0litellm_ctl.py" stop %*
+"%~dp0.venv\Scripts\python.exe" "%~dp0litellm_ctl.py" stop %*
 timeout 5

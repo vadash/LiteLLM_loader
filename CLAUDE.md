@@ -5,11 +5,11 @@ LiteLLM proxy that exposes multiple free/community LLM backends behind a single 
 ## Setup
 
 ```bash
-install.cmd              # Windows: check Python, install litellm, create .env template
+install.cmd              # Windows: check uv, uv sync, create .env template
 ./install.sh            # Unix: same
 ```
 
-Requires Python in PATH and `src/.env` with `NVIDIA_API_BASE` and `NVIDIA_API_KEY`.
+Requires [uv](https://docs.astral.sh/uv/) in PATH and `src/.env` with `NVIDIA_API_BASE` and `NVIDIA_API_KEY`.
 
 ## Running
 

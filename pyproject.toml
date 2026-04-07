@@ -1,0 +1,8 @@
+[project]
+name = "litellm-proxy"
+version = "0.1.0"
+description = "LiteLLM proxy with multi-model failover"
+requires-python = ">=3.9"
+dependencies = [
+    "litellm[proxy]==1.82.3",
+]

@@ -19,11 +19,26 @@ import time
 import platform
 
 SCRIPT_DIR = pathlib.Path(__file__).parent
+VENV_DIR = SCRIPT_DIR / ".venv"
 SRC_DIR = SCRIPT_DIR / "src"
 PID_FILE = SRC_DIR / ".litellm.pid"
 LOG_FILE = SRC_DIR / "litellm.log"
 ENV_FILE = SRC_DIR / ".env"
 CONFIG_FILE = SRC_DIR / "config.yaml"
+
+
+def _find_litellm_bin():
+    """Resolve the litellm binary from the project's uv venv."""
+    system = platform.system()
+    if system == "Windows":
+        bin_dir = VENV_DIR / "Scripts"
+    else:
+        bin_dir = VENV_DIR / "bin"
+    litellm_bin = bin_dir / ("litellm.exe" if system == "Windows" else "litellm")
+    if litellm_bin.exists():
+        return str(litellm_bin)
+    # Fallback: bare command (may work if uv venv is activated)
+    return "litellm"
 
 
 def load_env():
@@ -147,8 +162,9 @@ def start():
         CREATE_NO_WINDOW = 0x08000000
         CREATE_NEW_PROCESS_GROUP = 0x00000200
 
+        litellm_cmd = _find_litellm_bin()
         proc = subprocess.Popen(
-            ["litellm", "--config", "config.yaml"],
+            [litellm_cmd, "--config", "config.yaml"],
             cwd=SRC_DIR,
             env=env,
             stdout=log_handle,
@@ -158,8 +174,9 @@ def start():
         )
     else:
         # Unix: use start_new_session for process group
+        litellm_cmd = _find_litellm_bin()
         proc = subprocess.Popen(
-            ["litellm", "--config", "config.yaml"],
+            [litellm_cmd, "--config", "config.yaml"],
             cwd=SRC_DIR,
             env=env,
             stdout=log_handle,
@@ -189,14 +206,13 @@ def kill_litellm_exe():
     system = platform.system()
 
     if system == "Windows":
-        # Kill litellm.exe by image name
         subprocess.run(
             ["taskkill", "/F", "/IM", "litellm.exe"],
             capture_output=True,
             timeout=30
         )
     else:
-        # Unix: pkill litellm
+        # Unix: pkill litellm (matches both wrapper and python process)
         subprocess.run(
             ["pkill", "-f", "litellm"],
             capture_output=True,

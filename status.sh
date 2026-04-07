@@ -1,3 +1,3 @@
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-exec python3 "$SCRIPT_DIR/litellm_ctl.py" status "$@"
+exec "$SCRIPT_DIR/.venv/bin/python" "$SCRIPT_DIR/litellm_ctl.py" status "$@"

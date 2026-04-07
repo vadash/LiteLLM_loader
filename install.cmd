@@ -1,29 +1,31 @@
 @echo off
 echo ============================================
-echo  LiteLLM Proxy - Install
+echo  LiteLLM Proxy - Install (uv)
 echo ============================================
 echo.
 
-REM Check Python
-python --version >nul 2>&1
+REM Check uv
+where uv >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Python is not installed or not in PATH.
+    echo [ERROR] uv is not installed or not in PATH.
     echo.
-    echo Download Python from: https://www.python.org/downloads/
-    echo Make sure to check "Add Python to PATH" during installation.
+    echo Install uv with:
+    echo   powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+    echo.
+    echo Or visit: https://docs.astral.sh/uv/getting-started/installation/
     echo.
     pause
     exit /b 1
 )
 
-for /f "tokens=*" %%v in ('python --version 2^>^&1') do echo Found: %%v
+for /f "tokens=*" %%v in ('uv --version 2^>^&1') do echo Found: %%v
 echo.
 
-REM Install the last safe version of litellm
-echo Installing safe version of litellm (v1.82.3)...
-pip install litellm[proxy]==1.82.3
+REM Sync dependencies
+echo Installing dependencies...
+uv sync
 if errorlevel 1 (
-    echo [ERROR] Failed to install litellm v1.82.3
+    echo [ERROR] Failed to install dependencies.
     pause
     exit /b 1
 )

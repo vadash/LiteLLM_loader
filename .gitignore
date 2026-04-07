@@ -9,5 +9,8 @@ src/litellm.log
 __pycache__/
 *.pyc
 
+# uv
+.venv/
+
 # Temp
 /tmp/

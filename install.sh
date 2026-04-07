@@ -4,24 +4,27 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "============================================"
-echo " LiteLLM Proxy - Install"
+echo " LiteLLM Proxy - Install (uv)"
 echo "============================================"
 echo
 
-# Check Python
-if ! command -v python3 &> /dev/null; then
-    echo "[ERROR] Python 3 is not installed."
+# Check uv
+if ! command -v uv &> /dev/null; then
+    echo "[ERROR] uv is not installed."
     echo
-    echo "Install Python from: https://www.python.org/downloads/"
+    echo "Install uv with:"
+    echo "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo
+    echo "Or visit: https://docs.astral.sh/uv/getting-started/installation/"
     exit 1
 fi
 
-echo "Found: $(python3 --version)"
+echo "Found: $(uv --version)"
 echo
 
-# Install litellm
-echo "Installing safe version of litellm (v1.82.3)..."
-pip3 install litellm[proxy]==1.82.3
+# Sync dependencies
+echo "Installing dependencies..."
+uv sync
 echo
 
 # Check .env in src directory

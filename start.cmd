@@ -1,3 +1,3 @@
 @echo off
-pythonw "%~dp0litellm_ctl.py" start %*
+"%~dp0.venv\Scripts\pythonw.exe" "%~dp0litellm_ctl.py" start %*
 timeout 5
