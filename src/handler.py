@@ -50,17 +50,12 @@ class UniversalGarbageHandler(CustomLogger):
 
     # Universal patterns for models getting stuck in conversational loops or leaking raw data
     GARBAGE_PATTERNS = [
-        r"<\?php",                                          # PHP code leak
-        r"(?:分享到微博|新浪微博|转发微博)",                # Weibo scraping template leak
-        r"(?i)^how can I (?:help|assist) you(?: today)?\?", # Assistant amnesia loop
-        r"(?i)^please provide the text",                    # Assistant amnesia loop
-        r"(?i)^I am ready\.",                               # Assistant amnesia loop
     ]
 
     # Universal patterns for AI safety/alignment refusals (En, Ru, Zh)
     REFUSAL_PATTERNS = [
         # English
-        r"(?:As an|I am an) AI (?:language model|assistant)",
+        #r"(?:As an|I am an) AI (?:language model|assistant)",
         r"I can(?:not|'t) (?:fulfill|comply with|process) (?:this|your) request",
         r"against my (?:programming|guidelines|safety|ethical|core) (?:principles|policies|guidelines)",
         r"violate(?:s)? (?:safety|OpenAI|Anthropic|guidelines|policies)",
@@ -68,7 +63,7 @@ class UniversalGarbageHandler(CustomLogger):
         r"I(?:'m| am) sorry, (?:but )?I can(?:not|'t) (?:assist|help) with that",
         
         # Russian
-        r"Как искусственный интеллект",
+        #r"Как искусственный интеллект",
         r"Я не могу (?:выполнить|обработать) (?:этот )?запрос",
         r"противоречит (?:моим )?(?:правилам|политике|этическим)",
         r"нарушает (?:правила|политику|принципы) (?:безопасности|OpenAI|Anthropic)",
