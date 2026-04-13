@@ -16,111 +16,139 @@
 # LOGS: Check litellm.log for [GarbageResponseHandler] messages
 #
 model_list:
-  # ── Individual models ────────────────────────────────────────────────────────
+# ── Individual models ────────────────────────────────────────────────────────
 
-  # ── User-facing groups ────────────────────
-  - model_name: FAST
-    litellm_params:
-      model: openai/gpt-3.5-turbo   # known model ID → passes pre-call checks
-      api_key: "x"
-      mock_response: "error"
+# ── User-facing groups ────────────────────
+- model_name: FAST
+  litellm_params:
+    model: openai/gpt-3.5-turbo # known model ID → passes pre-call checks
+    api_key: "x"
+    mock_response: "error"
 
-  - model_name: SMART
-    litellm_params:
-      model: openai/gpt-3.5-turbo   # known model ID → passes pre-call checks
-      api_key: "x"
-      mock_response: "error"
+- model_name: SMART
+  litellm_params:
+    model: openai/gpt-3.5-turbo # known model ID → passes pre-call checks
+    api_key: "x"
+    mock_response: "error"
 
-  # ── Reusable fallback groups ─────────────────────────────────────────────────
-  - model_name: nvidia_glm
-    litellm_params:
-      model: openai/nvidia:z-ai/glm5
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+# ── Reusable fallback groups ─────────────────────────────────────────────────
+- model_name: nvidia_glm
+  litellm_params:
+    model: openai/nvidia:z-ai/glm5
+    api_base: os.environ/NVIDIA_API_BASE
+    api_key: os.environ/NVIDIA_API_KEY
+    extra_headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: nvidia_glm
-    litellm_params:
-      model: openai/nvidia:z-ai/glm4.7
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+- model_name: nvidia_glm
+  litellm_params:
+    model: openai/nvidia:z-ai/glm4.7
+    api_base: os.environ/NVIDIA_API_BASE
+    api_key: os.environ/NVIDIA_API_KEY
+    extra_headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: nvidia_qwen3x
-    litellm_params:
-      model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+- model_name: nvidia_qwen3x
+  litellm_params:
+    model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
+    api_base: os.environ/NVIDIA_API_BASE
+    api_key: os.environ/NVIDIA_API_KEY
+    extra_headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: nvidia_qwen3x
-    litellm_params:
-      model: openai/nvidia:qwen/qwen3.5-122b-a10b
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+- model_name: nvidia_qwen3x
+  litellm_params:
+    model: openai/nvidia:qwen/qwen3.5-122b-a10b
+    api_base: os.environ/NVIDIA_API_BASE
+    api_key: os.environ/NVIDIA_API_KEY
+    extra_headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: nvidia_kimi2
-    litellm_params:
-      model: openai/nvidia:moonshotai/kimi-k2-instruct-0905
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+- model_name: nvidia_kimi2
+  litellm_params:
+    model: openai/nvidia:moonshotai/kimi-k2-instruct-0905
+    api_base: os.environ/NVIDIA_API_BASE
+    api_key: os.environ/NVIDIA_API_KEY
+    extra_headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: nvidia_kimi2
-    litellm_params:
-      model: openai/nvidia:moonshotai/kimi-k2-instruct
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+- model_name: nvidia_kimi2
+  litellm_params:
+    model: openai/nvidia:moonshotai/kimi-k2-instruct
+    api_base: os.environ/NVIDIA_API_BASE
+    api_key: os.environ/NVIDIA_API_KEY
+    extra_headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: gemma4
-    litellm_params:
-      model: openai/gemma-4-31b-it
-      api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
-      api_key: os.environ/GOOGLE_API_KEY
-      drop_params: true
-      additional_drop_params: ["frequency_penalty", "presence_penalty", "do_sample"]
+- model_name: gemma4
+  litellm_params:
+    model: openai/gemma-4-31b-it
+    api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_key: os.environ/GOOGLE_API_KEY1
+    drop_params: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
 
-  - model_name: longcat
-    litellm_params:
-      model: openai/longcat:LongCat-Flash-Chat
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+- model_name: gemma4
+  litellm_params:
+    model: openai/gemma-4-31b-it
+    api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_key: os.environ/GOOGLE_API_KEY2
+    drop_params: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
 
-  - model_name: longcat
-    litellm_params:
-      model: openai/longcat:LongCat-Flash-Lite
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+- model_name: gemma4
+  litellm_params:
+    model: openai/gemma-4-31b-it
+    api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_key: os.environ/GOOGLE_API_KEY3
+    drop_params: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
 
-  - model_name: zai
-    litellm_params:
-      model: anthropic/glm-4.7
-      api_base: "https://api.z.ai/api/anthropic"
-      api_key: os.environ/ZAI_API_KEY      
+- model_name: longcat
+  litellm_params:
+    model: openai/longcat:LongCat-Flash-Chat
+    api_base: os.environ/NVIDIA_API_BASE
+    api_key: os.environ/NVIDIA_API_KEY
+    extra_headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: zai
-    litellm_params:
-      model: anthropic/glm-5-turbo
-      api_base: "https://api.z.ai/api/anthropic"
-      api_key: os.environ/ZAI_API_KEY
+- model_name: longcat
+  litellm_params:
+    model: openai/longcat:LongCat-Flash-Lite
+    api_base: os.environ/NVIDIA_API_BASE
+    api_key: os.environ/NVIDIA_API_KEY
+    extra_headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: zai
-    litellm_params:
-      model: anthropic/glm-5.1
-      api_base: "https://api.z.ai/api/anthropic"
-      api_key: os.environ/ZAI_API_KEY        
+- model_name: zai
+  litellm_params:
+    model: anthropic/glm-4.7
+    api_base: "https://api.z.ai/api/anthropic"
+    api_key: os.environ/ZAI_API_KEY
+
+- model_name: zai
+  litellm_params:
+    model: anthropic/glm-5-turbo
+    api_base: "https://api.z.ai/api/anthropic"
+    api_key: os.environ/ZAI_API_KEY
+
+- model_name: zai
+  litellm_params:
+    model: anthropic/glm-5.1
+    api_base: "https://api.z.ai/api/anthropic"
+    api_key: os.environ/ZAI_API_KEY
+
+- model_name: ali
+  litellm_params:
+    model: anthropic/glm-5
+    api_base: os.environ/ALIBABA_API_BASE
+    api_key: os.environ/ALIBABA_API_KEY
+
+- model_name: ali
+  litellm_params:
+    model: anthropic/glm-4.7
+    api_base: os.environ/ALIBABA_API_BASE
+    api_key: os.environ/ALIBABA_API_KEY
 
 router_settings:
   routing_strategy: "latency-based-routing"
@@ -132,21 +160,22 @@ router_settings:
   # iterates FAST's list directly and never consults a fallback model's own chain.
   # Therefore every entry must list the full remaining tail of the priority order.
   fallbacks:
-    # ── User-facing entry points ─────────────────────────────────────────────
-    - FAST: ["zai", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm"]
-    - SMART: ["zai", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm"]
-
-    # ── Reusable groups (needed only when called as direct primary model) ────
-    - zai: []
-    - nvidia_qwen3x: []
-    - gemma4: []
-    - longcat: []
-    - nvidia_kimi2: []
-    - nvidia_glm: []  
-
+  # ── User-facing entry points ─────────────────────────────────────────────
+  - FAST: [ "zai", "gemma4", "nvidia_qwen3x", "longcat", "nvidia_kimi2", "nvidia_glm", "ali" ]
+  - SMART: [ "zai", "ali", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm" ]
+  # ── Yep need to duplicate ────
   content_policy_fallbacks:
-    - FAST: ["zai", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm"]
-    - SMART: ["zai", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm"]
+  - FAST: [ "zai", "gemma4", "nvidia_qwen3x", "longcat", "nvidia_kimi2", "nvidia_glm", "ali" ]
+  - SMART: [ "zai", "ali", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm" ]
+
+  # ── Reusable groups (needed only when called as direct primary model) ────
+  - zai: []
+  - nvidia_qwen3x: []
+  - gemma4: []
+  - longcat: []
+  - nvidia_kimi2: []
+  - nvidia_glm: []
+  - ali: []
 
   timeout: 180
   num_retries: 0
@@ -158,22 +187,22 @@ router_settings:
   # InternalServerError = our garbage response trigger
   # Defines how many times specific HTTP errors can occur before a model is put on cooldown and bypassed
   allowed_fails_policy:
-    
+
     # Trips after 1 failure. Catches 500 errors, including the synthetic 500 errors injected by your custom handler.py when it detects garbage/refusals.
-    InternalServerErrorAllowedFails: 1 
-    
+    InternalServerErrorAllowedFails: 1
+
     # Trips after 1 failure. CRITICAL FOR KIMI2: Catches HTTP 400 errors (like NVIDIA rejecting a prompt for strict safety or context limits) so the fallback chain continues instead of halting.
-    BadRequestErrorAllowedFails: 1  
-    
+    BadRequestErrorAllowedFails: 1
+
     # Trips after 1 failure. CRITICAL FOR KIMI2: Catches HTTP 502 errors (Bad Gateway) which happens when the connection to the provider outright fails or drops.
-    BadGatewayErrorAllowedFails: 1  
-    
+    BadGatewayErrorAllowedFails: 1
+
     # Trips after 2 failures. Gives the model a slight 2-strike buffer for temporary HTTP 429 rate limits before marking it as dead.
-    RateLimitErrorAllowedFails: 2 
-    
+    RateLimitErrorAllowedFails: 2
+
     # Trips after 2 failures. Allows a 2-strike grace period if a model is just temporarily congested and slow to respond.
-    TimeoutErrorAllowedFails: 2 
-    
+    TimeoutErrorAllowedFails: 2
+
     # Trips after 1 failure. If a provider explicitly flags the prompt for safety violations, instantly failover to the next (potentially less censored) model in the chain.
     ContentPolicyViolationErrorAllowedFails: 1
 
@@ -182,7 +211,7 @@ general_settings:
   background_health_checks: false
 
 litellm_settings:
-  callbacks: ["handler.custom_handler"]
+  callbacks: [ "handler.custom_handler" ]
   set_verbose: false
   drop_params: true
   modify_params: true
