@@ -17,125 +17,19 @@
 #
 model_list:
   # ── Individual models ────────────────────────────────────────────────────────
-  - model_name: qwen-80b
-    litellm_params:
-      model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: qwen-122b
-    litellm_params:
-      model: openai/nvidia:qwen/qwen3.5-122b-a10b
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: kimi-k2-new
-    litellm_params:
-      model: openai/nvidia:moonshotai/kimi-k2-instruct-0905
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: kimi-k2-old
-    litellm_params:
-      model: openai/nvidia:moonshotai/kimi-k2-instruct
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: cerebras
-    litellm_params:
-      model: openai/cerebras:qwen-3-235b-a22b-instruct-2507
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: longcat
-    litellm_params:
-      model: openai/longcat:LongCat-Flash-Chat
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: mistral
-    litellm_params:
-      model: openai/mistral:mistral
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: qwen-coder
-    litellm_params:
-      model: openai/qwen:coder-model
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  - model_name: zai_glm47
-    litellm_params:
-      model: anthropic/glm-4.7
-      api_base: "https://api.z.ai/api/anthropic"
-      api_key: os.environ/ZAI_API_KEY      
-
-  - model_name: zai_glm5-turbo
-    litellm_params:
-      model: anthropic/glm-5-turbo
-      api_base: "https://api.z.ai/api/anthropic"
-      api_key: os.environ/ZAI_API_KEY
-
-  - model_name: zai_glm5.1
-    litellm_params:
-      model: anthropic/glm-5.1
-      api_base: "https://api.z.ai/api/anthropic"
-      api_key: os.environ/ZAI_API_KEY
-
-  - model_name: ali_glm50
-    litellm_params:
-      model: anthropic/glm-5
-      api_base: os.environ/ALIBABA_API_BASE
-      api_key: os.environ/ALIBABA_API_KEY
-
-  - model_name: gemma-31b
-    litellm_params:
-      model: openai/gemma-4-31b-it
-      api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
-      api_key: os.environ/GOOGLE_API_KEY
-      drop_params: true
-      additional_drop_params: ["frequency_penalty", "presence_penalty", "do_sample"]
-
-  # ── User-facing group: FAST = lowest latency of 2 Qwens ────────────────────
+  # ── User-facing groups ────────────────────
   - model_name: FAST
     litellm_params:
-      model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+      model: openai/gpt-3.5-turbo   # known model ID → passes pre-call checks
+      api_key: "x"
+      mock_response: "error"
 
-  - model_name: FAST
-    litellm_params:
-      model: openai/nvidia:qwen/qwen3.5-122b-a10b
-      api_base: os.environ/NVIDIA_API_BASE
-      api_key: os.environ/NVIDIA_API_KEY
-      extra_headers:
-        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-
-  # ── User-facing group: SMART = alias for zai_glm47 (Claude via z.ai) ─────────
   - model_name: SMART
     litellm_params:
-      model: anthropic/glm-4.7
-      api_base: "https://api.z.ai/api/anthropic"
-      api_key: os.environ/ZAI_API_KEY
+      model: openai/gpt-3.5-turbo   # known model ID → passes pre-call checks
+      api_key: "x"
+      mock_response: "error"
 
   # ── Reusable fallback groups ─────────────────────────────────────────────────
   - model_name: nvidia_glm
@@ -154,7 +48,7 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: qwen3x
+  - model_name: nvidia_qwen3x
     litellm_params:
       model: openai/nvidia:qwen/qwen3-next-80b-a3b-instruct
       api_base: os.environ/NVIDIA_API_BASE
@@ -162,7 +56,7 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: qwen3x
+  - model_name: nvidia_qwen3x
     litellm_params:
       model: openai/nvidia:qwen/qwen3.5-122b-a10b
       api_base: os.environ/NVIDIA_API_BASE
@@ -170,7 +64,7 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: kimi2
+  - model_name: nvidia_kimi2
     litellm_params:
       model: openai/nvidia:moonshotai/kimi-k2-instruct-0905
       api_base: os.environ/NVIDIA_API_BASE
@@ -178,13 +72,55 @@ model_list:
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  - model_name: kimi2
+  - model_name: nvidia_kimi2
     litellm_params:
       model: openai/nvidia:moonshotai/kimi-k2-instruct
       api_base: os.environ/NVIDIA_API_BASE
       api_key: os.environ/NVIDIA_API_KEY
       extra_headers:
         User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: gemma4
+    litellm_params:
+      model: openai/gemma-4-31b-it
+      api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
+      api_key: os.environ/GOOGLE_API_KEY
+      drop_params: true
+      additional_drop_params: ["frequency_penalty", "presence_penalty", "do_sample"]
+
+  - model_name: longcat
+    litellm_params:
+      model: openai/longcat:LongCat-Flash-Chat
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: longcat
+    litellm_params:
+      model: openai/longcat:LongCat-Flash-Lite
+      api_base: os.environ/NVIDIA_API_BASE
+      api_key: os.environ/NVIDIA_API_KEY
+      extra_headers:
+        User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+
+  - model_name: zai
+    litellm_params:
+      model: anthropic/glm-4.7
+      api_base: "https://api.z.ai/api/anthropic"
+      api_key: os.environ/ZAI_API_KEY      
+
+  - model_name: zai
+    litellm_params:
+      model: anthropic/glm-5-turbo
+      api_base: "https://api.z.ai/api/anthropic"
+      api_key: os.environ/ZAI_API_KEY
+
+  - model_name: zai
+    litellm_params:
+      model: anthropic/glm-5.1
+      api_base: "https://api.z.ai/api/anthropic"
+      api_key: os.environ/ZAI_API_KEY        
 
 router_settings:
   routing_strategy: "latency-based-routing"
@@ -197,30 +133,20 @@ router_settings:
   # Therefore every entry must list the full remaining tail of the priority order.
   fallbacks:
     # ── User-facing entry points ─────────────────────────────────────────────
-    - FAST: ["kimi2", "gemma-31b", "zai_glm47", "ali_glm50", "longcat", "cerebras"]
-    - SMART: ["ali_glm50", "zai_glm5-turbo", "nvidia_glm", "qwen3x", "gemma-31b", "kimi2", "longcat", "cerebras"]
+    - FAST: ["zai", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm"]
+    - SMART: ["zai", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm"]
 
     # ── Reusable groups (needed only when called as direct primary model) ────
-    - qwen3x: [] # terminal — suppresses per-request lookup warning
-    - nvidia_glm: [] # terminal — suppresses per-request lookup warning
-    - kimi2: [] # terminal — suppresses per-request lookup warning
-    - longcat: [] # terminal — suppresses per-request lookup warning
-    - qwen-coder: [] # terminal — suppresses per-request lookup warning
-    - cerebras: [] # terminal — suppresses per-request lookup warning
-    - zai_glm47: ["zai_glm5-turbo", "ali_glm50"]
-    - qwen-80b: []
-    - qwen-122b: []
-    - kimi-k2-new: []
-    - kimi-k2-old: []
-    - mistral: []
-    - ali_glm50: ["zai_glm47", "zai_glm5-turbo"]
-    - zai_glm5-turbo: ["zai_glm47", "ali_glm50"]
-    - zai_glm5.1: ["zai_glm47", "zai_glm5-turbo", "ali_glm50"]
-    - gemma-31b: []
+    - zai: []
+    - nvidia_qwen3x: []
+    - gemma4: []
+    - longcat: []
+    - nvidia_kimi2: []
+    - nvidia_glm: []  
 
   content_policy_fallbacks:
-    - FAST: ["kimi2", "gemma-31b", "zai_glm47", "ali_glm50", "longcat", "cerebras"]
-    - SMART: ["ali_glm50", "zai_glm5-turbo", "nvidia_glm", "qwen3x", "gemma-31b", "kimi2", "longcat", "cerebras"]
+    - FAST: ["zai", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm"]
+    - SMART: ["zai", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm"]
 
   timeout: 180
   num_retries: 0
