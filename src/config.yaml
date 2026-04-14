@@ -151,12 +151,12 @@ router_settings:
   # Therefore every entry must list the full remaining tail of the priority order.
   fallbacks:
   # ── User-facing entry points ─────────────────────────────────────────────
-  - FAST: [ "zai", "gemma4", "nvidia_qwen3x", "longcat", "nvidia_kimi2", "nvidia_glm", "ali" ]
+  - FAST: [ "gemma4", "nvidia_qwen3x", "longcat", "nvidia_kimi2", "nvidia_glm", "zai", "ali" ]
   - SMART: [ "zai", "ali", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm" ]
   # ── Yep need to duplicate ────
   content_policy_fallbacks:
-  - FAST: [ "zai", "gemma4", "nvidia_qwen3x", "longcat", "nvidia_kimi2", "nvidia_glm", "ali" ]
-  - SMART: [ "zai", "ali", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm" ]
+  - FAST: [ "gemma4", "nvidia_qwen3x", "longcat", "nvidia_kimi2", "nvidia_glm", "ali", "zai" ]
+  - SMART: [ "ali", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm", "zai" ]
 
   # ── Reusable groups (needed only when called as direct primary model) ────
   - zai: []
@@ -169,7 +169,7 @@ router_settings:
 
   timeout: 180
   num_retries: 0
-  enable_pre_call_checks: true
+  enable_pre_call_checks: false
   allowed_fails: 1 # Mark as dead after 1 garbage response
   cooldown_time: 600 # Keep provider dead for 10 minutes (600 seconds)
 
