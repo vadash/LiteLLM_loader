@@ -75,6 +75,7 @@ model_list:
     api_key: os.environ/GOOGLE_API_KEY1
     drop_params: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
+    rpm: 5
 
 - model_name: gemma4
   litellm_params:
@@ -83,6 +84,7 @@ model_list:
     api_key: os.environ/GOOGLE_API_KEY2
     drop_params: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
+    rpm: 5
 
 - model_name: gemma4
   litellm_params:
@@ -91,48 +93,49 @@ model_list:
     api_key: os.environ/GOOGLE_API_KEY3
     drop_params: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
+    rpm: 5
 
 - model_name: longcat
   litellm_params:
     model: openai/longcat:LongCat-Flash-Chat
     api_base: os.environ/NVIDIA_API_BASE
     api_key: os.environ/NVIDIA_API_KEY
+    rpm: 10
 
 - model_name: longcat
   litellm_params:
     model: openai/longcat:LongCat-Flash-Lite
     api_base: os.environ/NVIDIA_API_BASE
     api_key: os.environ/NVIDIA_API_KEY
+    rpm: 10
 
 - model_name: zai
   litellm_params:
     model: anthropic/glm-4.7
     api_base: "https://api.z.ai/api/anthropic"
     api_key: os.environ/ZAI_API_KEY
+    rpm: 10
 
 - model_name: zai
   litellm_params:
     model: anthropic/glm-5-turbo
     api_base: "https://api.z.ai/api/anthropic"
     api_key: os.environ/ZAI_API_KEY
-
-- model_name: zai
-  litellm_params:
-    model: anthropic/glm-5.1
-    api_base: "https://api.z.ai/api/anthropic"
-    api_key: os.environ/ZAI_API_KEY
+    rpm: 10
 
 - model_name: ali
   litellm_params:
     model: anthropic/glm-5
     api_base: os.environ/ALIBABA_API_BASE
     api_key: os.environ/ALIBABA_API_KEY
+    rpm: 10
 
 - model_name: ali
   litellm_params:
     model: anthropic/glm-4.7
     api_base: os.environ/ALIBABA_API_BASE
     api_key: os.environ/ALIBABA_API_KEY
+    rpm: 10
 
 router_settings:
   routing_strategy: "latency-based-routing"
