@@ -123,6 +123,20 @@ model_list:
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
 
+- model_name: zai_free
+  litellm_params:
+    model: anthropic/glm-4.7-flash
+    api_base: "https://api.z.ai/api/anthropic"
+    api_key: os.environ/ZAI_API_KEY
+    rpm: 10
+
+- model_name: zai_free
+  litellm_params:
+    model: anthropic/glm-4.5-air
+    api_base: "https://api.z.ai/api/anthropic"
+    api_key: os.environ/ZAI_API_KEY
+    rpm: 10
+
 - model_name: ali
   litellm_params:
     model: anthropic/glm-5
@@ -155,7 +169,7 @@ router_settings:
   - SMART: [ "zai", "ali", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm" ]
   # ── Yep need to duplicate ────
   content_policy_fallbacks:
-  - FAST: [ "gemma4", "nvidia_qwen3x", "longcat", "nvidia_kimi2", "nvidia_glm", "ali", "zai" ]
+  - FAST: [ "gemma4", "zai_free", "nvidia_qwen3x", "longcat", "nvidia_kimi2", "nvidia_glm", "ali", "zai" ]
   - SMART: [ "ali", "nvidia_qwen3x", "gemma4", "longcat", "nvidia_kimi2", "nvidia_glm", "zai" ]
 
   # ── Reusable groups (needed only when called as direct primary model) ────
@@ -166,6 +180,7 @@ router_settings:
   - nvidia_kimi2: []
   - nvidia_glm: []
   - ali: []
+  - zai_free: []
 
   timeout: 180
   num_retries: 0
