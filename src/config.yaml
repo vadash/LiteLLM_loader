@@ -46,12 +46,6 @@ model_list:
 
 - model_name: nvidia
   litellm_params:
-    model: openai/nvidia:mistralai/devstral-2-123b-instruct-2512
-    api_base: os.environ/NVIDIA_API_BASE
-    api_key: os.environ/NVIDIA_API_KEY
-
-- model_name: nvidia
-  litellm_params:
     model: openai/nvidia:qwen/qwen3.5-397b-a17b
     api_base: os.environ/NVIDIA_API_BASE
     api_key: os.environ/NVIDIA_API_KEY
@@ -85,16 +79,16 @@ model_list:
 
 - model_name: longcat
   litellm_params:
-    model: openai/longcat:LongCat-Flash-Chat
-    api_base: os.environ/NVIDIA_API_BASE
-    api_key: os.environ/NVIDIA_API_KEY
+    model: openai/LongCat-Flash-Chat
+    api_base: os.environ/LONGCAT_API_BASE
+    api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
 
 - model_name: longcat
   litellm_params:
-    model: openai/longcat:LongCat-Flash-Lite
-    api_base: os.environ/NVIDIA_API_BASE
-    api_key: os.environ/NVIDIA_API_KEY
+    model: openai/LongCat-Flash-Lite
+    api_base: os.environ/LONGCAT_API_BASE
+    api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
 
 - model_name: zai
@@ -107,6 +101,13 @@ model_list:
 - model_name: zai
   litellm_params:
     model: anthropic/glm-5-turbo
+    api_base: "https://api.z.ai/api/anthropic"
+    api_key: os.environ/ZAI_API_KEY
+    rpm: 10
+
+- model_name: zai51
+  litellm_params:
+    model: anthropic/glm-5.1
     api_base: "https://api.z.ai/api/anthropic"
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
@@ -124,7 +125,6 @@ model_list:
     api_base: "https://api.z.ai/api/anthropic"
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
-
 
 router_settings:
   routing_strategy: "latency-based-routing"
@@ -153,6 +153,7 @@ router_settings:
   - gemma4: []
   - longcat: []
   - zai_free: []
+  - zai51: []
 
   timeout: 180
   num_retries: 0
