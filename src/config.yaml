@@ -84,6 +84,13 @@ model_list:
     api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
 
+- model_name: longcat2
+  litellm_params:
+    model: openai/LongCat-2.0-Preview
+    api_base: os.environ/LONGCAT_API_BASE
+    api_key: os.environ/LONGCAT_API_KEY
+    rpm: 10
+
 - model_name: longcat
   litellm_params:
     model: openai/LongCat-Flash-Lite
@@ -94,36 +101,43 @@ model_list:
 - model_name: zai
   litellm_params:
     model: anthropic/glm-4.7
-    api_base: "https://api.z.ai/api/anthropic"
+    api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
 
 - model_name: zai
   litellm_params:
     model: anthropic/glm-5-turbo
-    api_base: "https://api.z.ai/api/anthropic"
+    api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
 
 - model_name: zai51
   litellm_params:
     model: anthropic/glm-5.1
-    api_base: "https://api.z.ai/api/anthropic"
+    api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
 
 - model_name: zai_free
   litellm_params:
     model: anthropic/glm-4.7-flash
-    api_base: "https://api.z.ai/api/anthropic"
+    api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
 
 - model_name: zai_free
   litellm_params:
     model: anthropic/glm-4.5-air
-    api_base: "https://api.z.ai/api/anthropic"
+    api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
+    rpm: 10
+
+- model_name: kimik25
+  litellm_params:
+    model: anthropic/kimi-k2.5
+    api_base: os.environ/ALIBABA_API_BASE
+    api_key: os.environ/ALIBABA_API_KEY
     rpm: 10
 
 router_settings:
@@ -154,6 +168,8 @@ router_settings:
   - longcat: []
   - zai_free: []
   - zai51: []
+  - longcat2: []
+  - kimik25: []
 
   timeout: 180
   num_retries: 0
