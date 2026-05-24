@@ -118,6 +118,8 @@ model_list:
     api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
+    # Force LiteLLM to track and pass thinking/reasoning parameters
+    supports_reasoning: true
 
 - model_name: zai_free
   litellm_params:
@@ -139,6 +141,8 @@ model_list:
     api_base: os.environ/ALIBABA_API_BASE
     api_key: os.environ/ALIBABA_API_KEY
     rpm: 10
+    # Force LiteLLM to track and pass thinking/reasoning parameters
+    supports_reasoning: true
 
 router_settings:
   routing_strategy: "latency-based-routing"
@@ -207,5 +211,8 @@ general_settings:
 litellm_settings:
   callbacks: [ "handler.custom_handler" ]
   set_verbose: false
-  drop_params: true
+  # MUST BE FALSE: Allowing drop_params = true drops 'thinking' configurations!
+  drop_params: false
   modify_params: true
+  # MUST BE TRUE: Tells LiteLLM to translate Anthropic thinking blocks into OpenAI reasoning_content
+  include_reasoning: true
