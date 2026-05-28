@@ -34,21 +34,21 @@ model_list:
 # ── Reusable fallback groups ─────────────────────────────────────────────────
 - model_name: nvidia
   litellm_params:
-    model: openai/nvidia:qwen/qwen3-coder-480b-a35b-instruct
+    model: openai/qwen/qwen3-coder-480b-a35b-instruct
     api_base: os.environ/NVIDIA_API_BASE
-    api_key: os.environ/NVIDIA_API_KEY
+    api_key: os.environ/NVIDIA_API_KEY1
 
 - model_name: nvidia
   litellm_params:
-    model: openai/nvidia:nvidia/nemotron-3-super-120b-a12b
+    model: openai/nvidia/nemotron-3-super-120b-a12b
     api_base: os.environ/NVIDIA_API_BASE
-    api_key: os.environ/NVIDIA_API_KEY
+    api_key: os.environ/NVIDIA_API_KEY2
 
 - model_name: nvidia
   litellm_params:
-    model: openai/nvidia:qwen/qwen3.5-397b-a17b
+    model: openai/qwen/qwen3.5-397b-a17b
     api_base: os.environ/NVIDIA_API_BASE
-    api_key: os.environ/NVIDIA_API_KEY
+    api_key: os.environ/NVIDIA_API_KEY3
 
 - model_name: gemma4
   litellm_params:
@@ -118,8 +118,21 @@ model_list:
     api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
+    supports_reasoning: true
+    # Allow LiteLLM to accept these specific parameters for this model mapping
+    supported_openai_params: [ "thinking", "clear_thinking" ]
+    # Ensure they don't get accidentally dropped by standard drop_params logic
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
+
+- model_name: zai47
+  litellm_params:
+    model: anthropic/glm-4.7
+    api_base: os.environ/ZAI_API_BASE
+    api_key: os.environ/ZAI_API_KEY
+    rpm: 10
     # Force LiteLLM to track and pass thinking/reasoning parameters
     supports_reasoning: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 - model_name: zai_free
   litellm_params:
@@ -143,6 +156,7 @@ model_list:
     rpm: 10
     # Force LiteLLM to track and pass thinking/reasoning parameters
     supports_reasoning: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 router_settings:
   routing_strategy: "latency-based-routing"
@@ -171,9 +185,10 @@ router_settings:
   - gemma4: []
   - longcat: []
   - zai_free: []
-  - zai51: []
+  - zai51: [ "zai47" ]
   - longcat2: []
   - kimik25: []
+  - zai47: []
 
   timeout: 180
   num_retries: 0
@@ -216,3 +231,5 @@ litellm_settings:
   modify_params: true
   # MUST BE TRUE: Tells LiteLLM to translate Anthropic thinking blocks into OpenAI reasoning_content
   include_reasoning: true
+  # Forces LiteLLM to pass non-standard parameters straight to the provider API
+  force_extra_body: true
