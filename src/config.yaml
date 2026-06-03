@@ -24,12 +24,14 @@ model_list:
     model: openai/gpt-3.5-turbo # known model ID → passes pre-call checks
     api_key: "x"
     mock_response: "error"
+    drop_params: true
 
 - model_name: SMART
   litellm_params:
     model: openai/gpt-3.5-turbo # known model ID → passes pre-call checks
     api_key: "x"
     mock_response: "error"
+    drop_params: true
 
 # ── Reusable fallback groups ─────────────────────────────────────────────────
 - model_name: nvidia
@@ -37,18 +39,21 @@ model_list:
     model: openai/qwen/qwen3-coder-480b-a35b-instruct
     api_base: os.environ/NVIDIA_API_BASE
     api_key: os.environ/NVIDIA_API_KEY1
+    drop_params: true
 
 - model_name: nvidia
   litellm_params:
     model: openai/nvidia/nemotron-3-super-120b-a12b
     api_base: os.environ/NVIDIA_API_BASE
     api_key: os.environ/NVIDIA_API_KEY2
+    drop_params: true
 
 - model_name: nvidia
   litellm_params:
     model: openai/qwen/qwen3.5-397b-a17b
     api_base: os.environ/NVIDIA_API_BASE
     api_key: os.environ/NVIDIA_API_KEY3
+    drop_params: true
 
 - model_name: gemma4
   litellm_params:
@@ -83,6 +88,7 @@ model_list:
     api_base: os.environ/LONGCAT_API_BASE
     api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
+    drop_params: true
 
 - model_name: longcat2
   litellm_params:
@@ -90,6 +96,7 @@ model_list:
     api_base: os.environ/LONGCAT_API_BASE
     api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
+    drop_params: true
 
 - model_name: longcat
   litellm_params:
@@ -97,6 +104,7 @@ model_list:
     api_base: os.environ/LONGCAT_API_BASE
     api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
+    drop_params: true
 
 - model_name: zai
   litellm_params:
@@ -104,6 +112,8 @@ model_list:
     api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
+    drop_params: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 - model_name: zai
   litellm_params:
@@ -111,6 +121,8 @@ model_list:
     api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
+    drop_params: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 - model_name: zai51
   litellm_params:
@@ -140,6 +152,8 @@ model_list:
     api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
+    drop_params: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 - model_name: zai_free
   litellm_params:
@@ -147,6 +161,8 @@ model_list:
     api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
+    drop_params: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 - model_name: kimik25
   litellm_params:
