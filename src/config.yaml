@@ -37,28 +37,28 @@ model_list:
 - model_name: nvidia
   litellm_params:
     model: openai/qwen/qwen3-coder-480b-a35b-instruct
-    api_base: os.environ/NVIDIA_API_BASE
+    api_base: os.environ/NVIDIA_PROXY_BASE1
     api_key: os.environ/NVIDIA_API_KEY1
     drop_params: true
 
 - model_name: nvidia
   litellm_params:
     model: openai/nvidia/nemotron-3-super-120b-a12b
-    api_base: os.environ/NVIDIA_API_BASE
+    api_base: os.environ/NVIDIA_PROXY_BASE2
     api_key: os.environ/NVIDIA_API_KEY2
     drop_params: true
 
 - model_name: nvidia
   litellm_params:
     model: openai/qwen/qwen3.5-397b-a17b
-    api_base: os.environ/NVIDIA_API_BASE
+    api_base: os.environ/NVIDIA_PROXY_BASE3
     api_key: os.environ/NVIDIA_API_KEY3
     drop_params: true
 
 - model_name: gemma4
   litellm_params:
     model: openai/gemma-4-31b-it
-    api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_base: os.environ/GOOGLE_PROXY_BASE1
     api_key: os.environ/GOOGLE_API_KEY1
     drop_params: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
@@ -67,7 +67,7 @@ model_list:
 - model_name: gemma4
   litellm_params:
     model: openai/gemma-4-31b-it
-    api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_base: os.environ/GOOGLE_PROXY_BASE2
     api_key: os.environ/GOOGLE_API_KEY2
     drop_params: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
@@ -76,7 +76,7 @@ model_list:
 - model_name: gemma4
   litellm_params:
     model: openai/gemma-4-31b-it
-    api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
+    api_base: os.environ/GOOGLE_PROXY_BASE3
     api_key: os.environ/GOOGLE_API_KEY3
     drop_params: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
@@ -85,7 +85,7 @@ model_list:
 - model_name: longcat
   litellm_params:
     model: openai/LongCat-Flash-Chat
-    api_base: os.environ/LONGCAT_API_BASE
+    api_base: os.environ/LONGCAT_PROXY_BASE1
     api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
     drop_params: true
@@ -93,7 +93,7 @@ model_list:
 - model_name: longcat2
   litellm_params:
     model: openai/LongCat-2.0-Preview
-    api_base: os.environ/LONGCAT_API_BASE
+    api_base: os.environ/LONGCAT_PROXY_BASE1
     api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
     drop_params: true
@@ -101,7 +101,7 @@ model_list:
 - model_name: longcat
   litellm_params:
     model: openai/LongCat-Flash-Lite
-    api_base: os.environ/LONGCAT_API_BASE
+    api_base: os.environ/LONGCAT_PROXY_BASE1
     api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
     drop_params: true
@@ -109,7 +109,7 @@ model_list:
 - model_name: zai
   litellm_params:
     model: anthropic/glm-4.7
-    api_base: os.environ/ZAI_API_BASE
+    api_base: os.environ/ZAI_PROXY_BASE1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     drop_params: true
@@ -118,7 +118,7 @@ model_list:
 - model_name: zai
   litellm_params:
     model: anthropic/glm-5-turbo
-    api_base: os.environ/ZAI_API_BASE
+    api_base: os.environ/ZAI_PROXY_BASE1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     drop_params: true
@@ -127,7 +127,7 @@ model_list:
 - model_name: zai51
   litellm_params:
     model: anthropic/glm-5.1
-    api_base: os.environ/ZAI_API_BASE
+    api_base: os.environ/ZAI_PROXY_BASE1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     supports_reasoning: true
@@ -139,7 +139,7 @@ model_list:
 - model_name: zai47
   litellm_params:
     model: anthropic/glm-4.7
-    api_base: os.environ/ZAI_API_BASE
+    api_base: os.environ/ZAI_PROXY_BASE1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     # Force LiteLLM to track and pass thinking/reasoning parameters
@@ -149,7 +149,7 @@ model_list:
 - model_name: zai_free
   litellm_params:
     model: anthropic/glm-4.7-flash
-    api_base: os.environ/ZAI_API_BASE
+    api_base: os.environ/ZAI_PROXY_BASE1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     drop_params: true
@@ -158,7 +158,7 @@ model_list:
 - model_name: zai_free
   litellm_params:
     model: anthropic/glm-4.5-air
-    api_base: os.environ/ZAI_API_BASE
+    api_base: os.environ/ZAI_PROXY_BASE1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     drop_params: true
@@ -167,7 +167,7 @@ model_list:
 - model_name: kimik25
   litellm_params:
     model: anthropic/kimi-k2.5
-    api_base: os.environ/ALIBABA_API_BASE
+    api_base: os.environ/ALIBABA_PROXY_BASE1
     api_key: os.environ/ALIBABA_API_KEY
     rpm: 10
     # Force LiteLLM to track and pass thinking/reasoning parameters
