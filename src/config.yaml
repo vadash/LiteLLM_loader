@@ -1,45 +1,55 @@
+# ==============================================================================
 # LiteLLM Router Configuration for OpenVault
-# ============================================
+# ==============================================================================
+# This configuration file manages a highly resilient, load-balanced, and
+# self-healing gateway that routes LLM requests across multiple backend providers.
 #
-# PURPOSE: Route LLM requests across multiple low-cost public models with automatic
-# fallback when models return garbage responses or timeout.
-#
-# GARBAGE DETECTION: handler.py detects training data leakage (PHP, HTML, Weibo
-# templates, system prompt leaks) and marks deployments as dead for 10 minutes.
-#
-# IMPORTANT SETTINGS:
-# - router_settings.cooldown_time: 600 (must match handler.py COOLDOWN_SECONDS)
-# - router_settings.allowed_fails: 1
-# - router_settings.allowed_fails_policy.InternalServerErrorAllowedFails: 1
-# - litellm_settings.callbacks: ["handler.custom_handler"]
-#
-# LOGS: Check litellm.log for [GarbageResponseHandler] messages
-#
-model_list:
-# ── Individual models ────────────────────────────────────────────────────────
+# How Routing Works Here:
+# 1. Clients send requests to virtual entry points (e.g., "FAST" or "SMART").
+# 2. A custom handler (handler.py) intercepts the request *before* routing.
+# 3. The handler rewrites the model to the primary target and injects the
+#    appropriate fallback chain.
+# 4. If a provider returns garbage, safety refusals, or crashes, the handler 
+#    cooldowns that specific deployment for 10 minutes (600s), and the router 
+#    seamlessly tries the next option in the fallback list.
+# ==============================================================================
 
-# ── User-facing groups ────────────────────
+model_list:
+# ────────────────────────────────────────────────────────────────────────────
+# 1. Virtual Entry Points (Aliases)
+# ────────────────────────────────────────────────────────────────────────────
+# These dummy entries act as user-facing entry points. They must be defined here
+# so that LiteLLM's startup validator recognizes the model names when the proxy
+# boots up. However, they are dynamically rewritten in handler.py before they are called.
+# ────────────────────────────────────────────────────────────────────────────
 - model_name: FAST
   litellm_params:
-    model: openai/gpt-3.5-turbo # known model ID → passes pre-call checks
-    api_key: "x"
-    mock_response: "error"
-    drop_params: true
+    model: openai/gpt-3.5-turbo # A standard known model ID to satisfy startup checks
+    api_key: "x" # Dummy key (never actually used)
+    mock_response: "error" # Fallback safety mock response
+    drop_params: true # Clear any incoming parameters that the mock engine cannot handle
 
 - model_name: SMART
   litellm_params:
-    model: openai/gpt-3.5-turbo # known model ID → passes pre-call checks
+    model: openai/gpt-3.5-turbo
     api_key: "x"
     mock_response: "error"
     drop_params: true
 
-# ── Reusable fallback groups ─────────────────────────────────────────────────
+# ────────────────────────────────────────────────────────────────────────────
+# 2. Reusable Fallback & Load-Balancing Groups
+# ────────────────────────────────────────────────────────────────────────────
+# When multiple entries share the same 'model_name', LiteLLM automatically groups 
+# them into a load-balanced pool. If one fails, LiteLLM tries the others.
+# ────────────────────────────────────────────────────────────────────────────
+
+# --- NVIDIA Pool ---
 - model_name: nvidia
   litellm_params:
     model: openai/qwen/qwen3-coder-480b-a35b-instruct
-    api_base: os.environ/NVIDIA_PROXY_BASE1
+    api_base: os.environ/NVIDIA_PROXY_BASE1 # Resolves from environment variable at runtime
     api_key: os.environ/NVIDIA_API_KEY1
-    drop_params: true
+    drop_params: true # Drop unsupported parameters to prevent 400 Bad Request errors
 
 - model_name: nvidia
   litellm_params:
@@ -55,14 +65,16 @@ model_list:
     api_key: os.environ/NVIDIA_API_KEY3
     drop_params: true
 
+# --- Gemma 4 Pool ---
 - model_name: gemma4
   litellm_params:
     model: openai/gemma-4-31b-it
     api_base: os.environ/GOOGLE_PROXY_BASE1
     api_key: os.environ/GOOGLE_API_KEY1
     drop_params: true
+    # Exclude specific parameters that cause Gemma engines to error out:
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
-    rpm: 5
+    rpm: 5 # Rate limit tracking (Requests Per Minute)
 
 - model_name: gemma4
   litellm_params:
@@ -82,6 +94,7 @@ model_list:
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
     rpm: 5
 
+# --- LongCat Pools ---
 - model_name: longcat
   litellm_params:
     model: openai/LongCat-Flash-Chat
@@ -106,6 +119,7 @@ model_list:
     rpm: 10
     drop_params: true
 
+# --- GLM / Zai Pools ---
 - model_name: zai
   litellm_params:
     model: anthropic/glm-4.7
@@ -130,10 +144,9 @@ model_list:
     api_base: os.environ/ZAI_PROXY_BASE1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
-    supports_reasoning: true
-    # Allow LiteLLM to accept these specific parameters for this model mapping
+    supports_reasoning: true # Tells LiteLLM to preserve reasoning/thinking tokens
+    # Tell the parser to permit these reasoning controls to reach the model
     supported_openai_params: [ "thinking", "clear_thinking" ]
-    # Ensure they don't get accidentally dropped by standard drop_params logic
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 - model_name: zai47
@@ -142,7 +155,6 @@ model_list:
     api_base: os.environ/ZAI_PROXY_BASE1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
-    # Force LiteLLM to track and pass thinking/reasoning parameters
     supports_reasoning: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
@@ -164,38 +176,36 @@ model_list:
     drop_params: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
+# --- Kimi Pool ---
 - model_name: kimik25
   litellm_params:
     model: anthropic/kimi-k2.5
     api_base: os.environ/ALIBABA_PROXY_BASE1
     api_key: os.environ/ALIBABA_API_KEY
     rpm: 10
-    # Force LiteLLM to track and pass thinking/reasoning parameters
     supports_reasoning: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
+# ────────────────────────────────────────────────────────────────────────────
+# Router Settings
+# ────────────────────────────────────────────────────────────────────────────
 router_settings:
+  # Strategy: Evaluates past response times and routes traffic to the fastest healthy model.
   routing_strategy: "latency-based-routing"
   routing_strategy_args:
-    lowest_latency_buffer: 0.3
+    lowest_latency_buffer: 0.3 # If models are within 0.3s of each other, randomly load-balance
+
   default_litellm_params:
     extra_headers:
+      # Some public APIs block standard python-requests headers. We mock a browser UA to prevent blocks.
       User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
 
-  # ── Fallback behavior with groups ───────────────────────────────────────────
-  # LiteLLM resolves fallbacks FLAT (not recursive): when FAST fails, the router
-  # iterates FAST's list directly and never consults a fallback model's own chain.
-  # Therefore every entry must list the full remaining tail of the priority order.
+  # Fallback Definitions:
+  # LiteLLM processes fallback chains in a flat manner. It does not recurse.
+  # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
-  # ── User-facing entry points ─────────────────────────────────────────────
   - FAST: [ "gemma4", "zai_free", "nvidia", "longcat", "zai" ]
   - SMART: [ "zai", "nvidia", "gemma4", "longcat" ]
-  # ── Yep need to duplicate ────
-  content_policy_fallbacks:
-  - FAST: [ "gemma4", "zai_free", "nvidia", "longcat", "zai" ]
-  - SMART: [ "zai", "nvidia", "gemma4", "longcat" ]
-
-  # ── Reusable groups (needed only when called as direct primary model) ────
   - zai: []
   - nvidia: []
   - gemma4: []
@@ -206,46 +216,59 @@ router_settings:
   - kimik25: []
   - zai47: []
 
-  timeout: 180
-  num_retries: 0
-  enable_pre_call_checks: false
-  allowed_fails: 1 # Mark as dead after 1 garbage response
-  cooldown_time: 600 # Keep provider dead for 10 minutes (600 seconds)
+  # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
+  content_policy_fallbacks:
+  - FAST: [ "gemma4", "zai_free", "nvidia", "longcat", "zai" ]
+  - SMART: [ "zai", "nvidia", "gemma4", "longcat" ]
 
-  # ── Per-error-type cooldown thresholds ──────────────────────────────────────
-  # InternalServerError = our garbage response trigger
-  # Defines how many times specific HTTP errors can occur before a model is put on cooldown and bypassed
+  timeout: 180 # Timeout calls to a provider after 180 seconds
+  num_retries: 0 # Retries: 0 ensures immediate fallback on error instead of retrying a dead node
+  enable_pre_call_checks: false # Set to false to avoid making ping calls prior to every request (saves latency)
+  allowed_fails: 1 # Put a deployment on cooldown after 1 failed/garbage response
+  cooldown_time: 600 # Keep failing providers dead for 10 minutes (600s)
+
+  # Per-Error Cooldown Settings:
+  # Defines how many times specific errors can occur on a deployment before it is temporarily disabled.
   allowed_fails_policy:
-
-    # Trips after 1 failure. Catches 500 errors, including the synthetic 500 errors injected by your custom handler.py when it detects garbage/refusals.
+    # 500 Errors: Cooldown immediately. This catches synthetic 500s from your custom garbage handler.
     InternalServerErrorAllowedFails: 1
 
-    # Trips after 1 failure. CRITICAL FOR KIMI2: Catches HTTP 400 errors (like NVIDIA rejecting a prompt for strict safety or context limits) so the fallback chain continues instead of halting.
+    # 400 Errors: Cooldown immediately. This catches safety or strict context limit rejects.
     BadRequestErrorAllowedFails: 1
 
-    # Trips after 1 failure. CRITICAL FOR KIMI2: Catches HTTP 502 errors (Bad Gateway) which happens when the connection to the provider outright fails or drops.
+    # 502 Errors: Cooldown immediately. Catches connection drops or bad gateways.
     BadGatewayErrorAllowedFails: 1
 
-    # Trips after 2 failures. Gives the model a slight 2-strike buffer for temporary HTTP 429 rate limits before marking it as dead.
+    # 429 Errors: Allow 2 attempts before cooldown to give brief rate-limits a chance to clear.
     RateLimitErrorAllowedFails: 2
 
-    # Trips after 2 failures. Allows a 2-strike grace period if a model is just temporarily congested and slow to respond.
+    # Timeout: Allow 2 timeout occurrences before temporarily disabling the endpoint.
     TimeoutErrorAllowedFails: 2
 
-    # Trips after 1 failure. If a provider explicitly flags the prompt for safety violations, instantly failover to the next (potentially less censored) model in the chain.
+    # Content Moderation: Cooldown immediately to switch to a less restrictive model in the chain.
     ContentPolicyViolationErrorAllowedFails: 1
 
+# ────────────────────────────────────────────────────────────────────────────
+# General Settings
+# ────────────────────────────────────────────────────────────────────────────
 general_settings:
-  master_key: os.environ/LITELLM_MASTER_KEY
-  background_health_checks: false
+  master_key: os.environ/LITELLM_MASTER_KEY # The admin key used to manage the LiteLLM server
+  background_health_checks: false # Avoid background ping spam; let real requests discover failures
 
+# ────────────────────────────────────────────────────────────────────────────
+# LiteLLM Core Behavior Settings
+# ────────────────────────────────────────────────────────────────────────────
 litellm_settings:
-  callbacks: [ "handler.custom_handler" ]
-  set_verbose: false
-  # MUST BE FALSE: Allowing drop_params = true drops 'thinking' configurations!
+  callbacks: [ "handler.custom_handler" ] # Connects the custom garbage response handler (handler.py)
+  set_verbose: false # Keep console logs clean (mute LiteLLM verbose debugging)
+
+  # MUST BE FALSE: If set to True globally, LiteLLM would purge 'thinking' parameters before the router logic can run.
   drop_params: false
+
   modify_params: true
-  # MUST BE TRUE: Tells LiteLLM to translate Anthropic thinking blocks into OpenAI reasoning_content
+
+  # MUST BE TRUE: Directs LiteLLM to translate reasoning blocks (like Anthropic thinking tags) into standard OpenAI reasoning fields.
   include_reasoning: true
-  # Forces LiteLLM to pass non-standard parameters straight to the provider API
+
+  # Forces LiteLLM to pass non-standard parameters down to the provider API instead of stripping them.
   force_extra_body: true

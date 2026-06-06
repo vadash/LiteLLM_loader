@@ -8,18 +8,22 @@ from datetime import datetime
 # =========================================================================
 # SILENCE NOISY LITELLM TRACEBACKS IN THE CONSOLE
 # =========================================================================
+# By default, LiteLLM prints full traceback logs every time a request fails 
+# and switches to a fallback. Under heavy load, this can clutter stdout.
+# This filter suppresses redundant warnings during normal fallback operations.
+# =========================================================================
 class SuppressNoisyRouterErrors(logging.Filter):
     def filter(self, record):
         msg = record.getMessage()
-        # Block the massive traceback dump when a fallback occurs
+        # Suppress standard fallback warning tracebacks
         if "Error occurred while trying to do fallbacks" in msg:
             return False
-        # Block any orphaned tracebacks related to BadGateway/BadRequest
+        # Suppress orphaned tracebacks associated with gateway or format drops
         if "Traceback (most recent call last):" in msg and "OpenAIException" in msg:
             return False
         return True
 
-# Attach the silencer to LiteLLM's internal loggers
+# Attach the custom filter to LiteLLM's internal system loggers
 logging.getLogger("LiteLLM Router").addFilter(SuppressNoisyRouterErrors())
 logging.getLogger("LiteLLM").addFilter(SuppressNoisyRouterErrors())
 logging.getLogger("litellm").addFilter(SuppressNoisyRouterErrors())
@@ -28,7 +32,7 @@ logging.getLogger("litellm").addFilter(SuppressNoisyRouterErrors())
 LOG_FILE = pathlib.Path(__file__).parent / "litellm.log"
 
 def log_to_file(message: str):
-    """Append a log message with timestamp to litellm.log."""
+    """Utility function to write timestamped log entries to litellm.log."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     try:
         with open(LOG_FILE, "a", encoding="utf-8") as f:
@@ -39,38 +43,34 @@ def log_to_file(message: str):
 
 class UniversalGarbageHandler(CustomLogger):
     """
-    A universal LiteLLM plugin that detects AI safety refusals, empty JSON, 
-    hallucination loops, and raw training data leaks. It instantly marks the 
-    offending deployment as 'dead' in the router to force an immediate fallback.
+    A LiteLLM custom callback class. 
+    
+    This class hooks into the router lifecycle to:
+    1. Translate virtual models (FAST/SMART) into active endpoints before calling them.
+    2. Inspect incoming LLM outputs (both standard completions and streams).
+    3. Programmatically quarantine (cooldown) any deployment returning garbage/refusals.
     """
 
-    # 10 minutes (must match router_settings.cooldown_time in config.yaml.md)
+    # Cooldown duration: must match router_settings.cooldown_time in config.yaml
     COOLDOWN_SECONDS = 600  
-    MIN_CONTENT_LENGTH = 10
 
-    # Universal patterns for models getting stuck in conversational loops or leaking raw data
-    GARBAGE_PATTERNS = [
-    ]
-
-    # Universal patterns for AI safety/alignment refusals (En, Ru, Zh)
+    # regular expressions to identify common system alignment/moderation refusals
     REFUSAL_PATTERNS = [
-        # English
-        #r"(?:As an|I am an) AI (?:language model|assistant)",
+        # English Refusal Patterns
         r"I can(?:not|'t) (?:fulfill|comply with|process) (?:this|your) request",
         r"against my (?:programming|guidelines|safety|ethical|core) (?:principles|policies|guidelines)",
         r"violate(?:s)? (?:safety|OpenAI|Anthropic|guidelines|policies)",
         r"I can(?:not|'t) (?:generate|create|provide|write) (?:content|text|responses|stories|JSON) that (?:is|depicts|involves|contains?)",
         r"I(?:'m| am) sorry, (?:but )?I can(?:not|'t) (?:assist|help) with that",
         
-        # Russian
-        #r"Как искусственный интеллект",
+        # Russian Refusal Patterns
         r"Я не могу (?:выполнить|обработать) (?:этот )?запрос",
         r"противоречит (?:моим )?(?:правилам|политике|этическим)",
         r"нарушает (?:правила|политику|принципы) (?:безопасности|OpenAI|Anthropic)",
         r"Я не могу (?:создавать|генерировать|предоставлять) контент, который",
         r"Извините, но я не могу (?:помочь|выполнить|сгенерировать|предоставить)",
         
-        # Chinese
+        # Chinese Refusal Patterns
         r"作为一个(?:人工智能|AI|语言模型)",
         r"抱歉，我无法(?:满足|处理)(?:您|你)的请求",
         r"我无法为(?:您|你)(?:生成|提供|创建)",
@@ -78,8 +78,35 @@ class UniversalGarbageHandler(CustomLogger):
         r"我不能(?:协助|提供)(?:此类|这方面)的",
     ]
 
+    # Add loop detection / gibberish detection signatures here as needed
+    GARBAGE_PATTERNS = []
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Lifecycle Hook 1: Pre-Call Request Interception
+    # ─────────────────────────────────────────────────────────────────────────
+    async def async_pre_call_hook(self, user_api_key_dict: dict, data: dict, call_type: str, *args, **kwargs):
+        """
+        Pre-call hook to intercept virtual/entry model requests (FAST/SMART)
+        and map them to active model groups and fallback arrays dynamically.
+        This avoids hitting dummy deployments and triggering mock responses.
+        
+        Using *args and **kwargs makes this signature fully compatible with 
+        varied versions of LiteLLM (which may pass 'cache' or 'cache_dict' keywords).
+        """
+        model = data.get("model")
+        if model == "FAST":
+            # Change the destination model name
+            data["model"] = "gemma4"
+            # Explicitly define fallback models for this specific request
+            data["fallbacks"] = ["zai_free", "nvidia", "longcat", "zai"]
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=FAST -> target=gemma4 fallbacks={data['fallbacks']}")
+        elif model == "SMART":
+            data["model"] = "zai"
+            data["fallbacks"] = ["nvidia", "gemma4", "longcat"]
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=zai fallbacks={data['fallbacks']}")
+
     def _get_response_preview(self, response_obj, max_chars: int = 200) -> str:
-        """Safely extract the first N chars of the response for logging."""
+        """Safely parses content and reasoning sections to return a concise log preview."""
         try:
             if not hasattr(response_obj, "choices") or not response_obj.choices:
                 return "<no_choices>"
@@ -96,10 +123,10 @@ class UniversalGarbageHandler(CustomLogger):
 
     def _expects_json(self, kwargs: dict) -> bool:
         """
-        Universally detects if the API client expects a JSON response.
-        Checks explicit API params (response_format) AND common prompt instructions.
+        Heuristic function to check if the caller expects structural JSON.
+        Evaluates system arguments and user prompts.
         """
-        # 1. Check strict API parameters (json_schema or json_object)
+        # Step 1: Check standard response_format parameters
         litellm_params = kwargs.get("litellm_params", {})
         response_format = litellm_params.get("response_format") or kwargs.get("response_format", {})
         
@@ -108,7 +135,7 @@ class UniversalGarbageHandler(CustomLogger):
             if req_type in ["json_schema", "json_object"]:
                 return True
 
-        # 2. Universal Prompt Heuristics (Checks if the user/system explicitly demanded JSON)
+        # Step 2: Check for explicit prompts requesting JSON format
         messages = kwargs.get("messages", [])
         for msg in messages:
             content = str(msg.get("content", "")).lower()
@@ -119,7 +146,8 @@ class UniversalGarbageHandler(CustomLogger):
 
     def _looks_like_garbage(self, response_obj, kwargs: dict) -> tuple[bool, str]:
         """
-        Evaluates the response. Returns (True, reason) if it should be marked dead.
+        Inspects model responses. 
+        Returns (True, reason) if output is detected as garbage/refusal.
         """
         if not hasattr(response_obj, "choices") or not response_obj.choices:
             return True, "no_choices_in_response"
@@ -127,41 +155,41 @@ class UniversalGarbageHandler(CustomLogger):
         message = response_obj.choices[0].message
         actual_content = getattr(message, "content", None) or ""
         reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
-        
-        # We check both content and reasoning blocks together for refusals/garbage
         combined_text = actual_content + " " + reasoning
 
-        # 1. Check for AI Refusals
+        # Guard: Ignore dummy mock responses so they don't trigger unexpected errors
+        if kwargs.get("model") in ["FAST", "SMART"] or actual_content.strip() == "error":
+            return False, ""
+
+        # Check 1: Refusal Matching
         for pattern in self.REFUSAL_PATTERNS:
             if re.search(pattern, combined_text, re.IGNORECASE):
                 return True, f"refusal_match:{pattern[:20]}..."
 
-        # 2. Check for Hallucination/Garbage Loops
+        # Check 2: Loop/Garbage Pattern Matching
         for pattern in self.GARBAGE_PATTERNS:
             if re.search(pattern, combined_text, re.IGNORECASE):
                 return True, f"garbage_match:{pattern[:20]}..."
 
-        # 3. Check for HTML/Web-Scraping Leaks (Model broke and served a raw webpage)
+        # Check 3: Web-Scraping / HTML Leaks
         if re.match(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', combined_text, re.IGNORECASE):
             return True, "leaked_html_document"
             
-        # 4. Strict JSON Structure Validation
-        # If the app requested JSON, the actual_content MUST contain brackets. 
-        # If a model trips a safety filter AFTER thinking, actual_content will be empty.
+        # Check 4: JSON Validation Heuristic
         if self._expects_json(kwargs):
             if not actual_content.strip():
                 return True, "safety_trip_empty_json_content"
             if '{' not in actual_content and '[' not in actual_content:
                 return True, "missing_json_structure_in_content"
         else:
-            # Standard conversational length check
-            if len(combined_text.strip()) < self.MIN_CONTENT_LENGTH:
-                return True, "response_too_short_or_empty"
+            # Check 5: Empty response detection
+            if not combined_text.strip():
+                return True, "response_is_empty"
                 
         return False, ""
 
     def _get_deployment_id(self, kwargs) -> str:
-        """Extracts the exact LiteLLM router deployment hash."""
+        """Retrieves the unique, long-form identifier of the targeted model node."""
         litellm_params = kwargs.get("litellm_params") or {}
         model_info = litellm_params.get("model_info") or {}
         model_id = model_info.get("id", "")
@@ -171,8 +199,8 @@ class UniversalGarbageHandler(CustomLogger):
 
     def _mark_deployment_dead(self, deployment_id: str, reason: str):
         """
-        Injects a synthetic HTTP 500 error directly into LiteLLM's cooldown cache.
-        This forces the router to instantly failover to the next fallback model.
+        Manually triggers a failover on a model node by flagging it in the 
+        active cooldown cache. The node remains inactive for COOLDOWN_SECONDS.
         """
         msg = f"[UniversalGarbageHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason})"
         print(msg)
@@ -183,13 +211,14 @@ class UniversalGarbageHandler(CustomLogger):
             if llm_router is None or not hasattr(llm_router, 'cooldown_cache'):
                 return
                 
+            # Create a mock internal error exception to trigger LiteLLM's fallback logic
             fake_exception = litellm.InternalServerError(
                 message=f"Garbage response detected: {reason}",
                 model=deployment_id,
                 llm_provider="",
             )
             
-            # API changes across LiteLLM versions (model_id vs deployment_id)
+            # Accommodate variations across different LiteLLM package versions
             try:
                 llm_router.cooldown_cache.add_deployment_to_cooldown(
                     model_id=deployment_id,
@@ -207,12 +236,11 @@ class UniversalGarbageHandler(CustomLogger):
         except Exception as e:
             log_to_file(f"[ERROR] Failed to mark deployment dead: {e}")
 
-    # =========================================================================
-    # LiteLLM Event Hooks
-    # =========================================================================
-
+    # ─────────────────────────────────────────────────────────────────────────
+    # Lifecycle Hook 2: Logging and Output Auditing (Non-Streaming)
+    # ─────────────────────────────────────────────────────────────────────────
     async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
-        """Hook for standard (non-streaming) completions."""
+        """Triggered upon any successful standard chat completion."""
         deployment_id = self._get_deployment_id(kwargs)
         model_name = kwargs.get("model", "unknown")
         preview = self._get_response_preview(response_obj)
@@ -227,8 +255,11 @@ class UniversalGarbageHandler(CustomLogger):
             log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
             self._mark_deployment_dead(deployment_id, reason)
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # Lifecycle Hook 3: Logging and Output Auditing (Streaming Completions)
+    # ─────────────────────────────────────────────────────────────────────────
     async def async_log_stream_complete_event(self, kwargs, response_obj, start_time, end_time):
-        """Hook for streaming completions (evaluated after the stream finishes)."""
+        """Triggered after an entire stream of tokens has completed."""
         deployment_id = self._get_deployment_id(kwargs)
         model_name = kwargs.get("model", "unknown")
         preview = self._get_response_preview(response_obj)
@@ -243,17 +274,19 @@ class UniversalGarbageHandler(CustomLogger):
             log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
             self._mark_deployment_dead(deployment_id, f"stream_{reason}")
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # Lifecycle Hook 4: Logging Natural Failures (e.g., Timeout, 429 Rate Limit)
+    # ─────────────────────────────────────────────────────────────────────────
     async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
-        """Hook for logging natural provider failures (HTTP 400, 429, 502)."""
+        """Triggered if an API call fails due to standard provider errors."""
         deployment_id = self._get_deployment_id(kwargs)
         model_name = kwargs.get("model", "unknown")
         
-        # LiteLLM passes exceptions via kwargs in failure events
         exception = kwargs.get("exception") or kwargs.get("original_exception") or response_obj
         exception_type = type(exception).__name__ if exception else "Unknown"
         exception_msg = str(exception)[:200] if exception else "no details"
         
         log_to_file(f"[PROVIDER_FAILURE] model={model_name} deploy={deployment_id[:12]} error={exception_type}: {exception_msg!r}")
 
-# Register the plugin instance so LiteLLM can hook into it
+# Instantiate class to automatically register callback within LiteLLM
 custom_handler = UniversalGarbageHandler()
