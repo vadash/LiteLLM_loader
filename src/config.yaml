@@ -95,15 +95,8 @@ model_list:
     rpm: 5
 
 # --- LongCat Pools ---
-- model_name: longcat
-  litellm_params:
-    model: openai/LongCat-Flash-Chat
-    api_base: os.environ/LONGCAT_PROXY_BASE1
-    api_key: os.environ/LONGCAT_API_KEY
-    rpm: 10
-    drop_params: true
 
-- model_name: longcat2
+- model_name: longcat
   litellm_params:
     model: openai/LongCat-2.0-Preview
     api_base: os.environ/LONGCAT_PROXY_BASE1
@@ -111,27 +104,10 @@ model_list:
     rpm: 10
     drop_params: true
 
-- model_name: longcat
-  litellm_params:
-    model: openai/LongCat-Flash-Lite
-    api_base: os.environ/LONGCAT_PROXY_BASE1
-    api_key: os.environ/LONGCAT_API_KEY
-    rpm: 10
-    drop_params: true
-
 # --- GLM / Zai Pools ---
-- model_name: zai
+- model_name: zai47
   litellm_params:
     model: anthropic/glm-4.7
-    api_base: os.environ/ZAI_PROXY_BASE1
-    api_key: os.environ/ZAI_API_KEY
-    rpm: 10
-    drop_params: true
-    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
-
-- model_name: zai
-  litellm_params:
-    model: anthropic/glm-5-turbo
     api_base: os.environ/ZAI_PROXY_BASE1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
@@ -158,34 +134,6 @@ model_list:
     supports_reasoning: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
-- model_name: zai_free
-  litellm_params:
-    model: anthropic/glm-4.7-flash
-    api_base: os.environ/ZAI_PROXY_BASE1
-    api_key: os.environ/ZAI_API_KEY
-    rpm: 10
-    drop_params: true
-    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
-
-- model_name: zai_free
-  litellm_params:
-    model: anthropic/glm-4.5-air
-    api_base: os.environ/ZAI_PROXY_BASE1
-    api_key: os.environ/ZAI_API_KEY
-    rpm: 10
-    drop_params: true
-    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
-
-# --- Kimi Pool ---
-- model_name: kimik25
-  litellm_params:
-    model: anthropic/kimi-k2.5
-    api_base: os.environ/ALIBABA_PROXY_BASE1
-    api_key: os.environ/ALIBABA_API_KEY
-    rpm: 10
-    supports_reasoning: true
-    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
-
 # ────────────────────────────────────────────────────────────────────────────
 # Router Settings
 # ────────────────────────────────────────────────────────────────────────────
@@ -204,22 +152,17 @@ router_settings:
   # LiteLLM processes fallback chains in a flat manner. It does not recurse.
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
-  - FAST: [ "gemma4", "zai_free", "nvidia", "longcat", "zai" ]
-  - SMART: [ "zai", "nvidia", "gemma4", "longcat" ]
-  - zai: []
+  - FAST: [ "gemma4", "nvidia", "longcat", "zai47", "zai51" ]
+  - SMART: [ "zai51", "zai47", "nvidia", "longcat", "gemma4" ]
   - nvidia: []
   - gemma4: []
   - longcat: []
-  - zai_free: []
   - zai51: [ "zai47" ]
-  - longcat2: []
-  - kimik25: []
-  - zai47: []
-
+  - zai47: [ "zai51" ]
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
-  - FAST: [ "gemma4", "zai_free", "nvidia", "longcat", "zai" ]
-  - SMART: [ "zai", "nvidia", "gemma4", "longcat" ]
+  - FAST: [ "gemma4", "nvidia", "longcat", "zai47", "zai51" ]
+  - SMART: [ "zai51", "zai47", "nvidia", "longcat", "gemma4" ]
 
   timeout: 180 # Timeout calls to a provider after 180 seconds
   num_retries: 0 # Retries: 0 ensures immediate fallback on error instead of retrying a dead node

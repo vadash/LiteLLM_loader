@@ -98,12 +98,12 @@ class UniversalGarbageHandler(CustomLogger):
             # Change the destination model name
             data["model"] = "gemma4"
             # Explicitly define fallback models for this specific request
-            data["fallbacks"] = ["zai_free", "nvidia", "longcat", "zai"]
+            data["fallbacks"] = ["nvidia", "longcat", "zai47", "zai51"]
             log_to_file(f"[ROUTER_REWRITE] virtual_model=FAST -> target=gemma4 fallbacks={data['fallbacks']}")
         elif model == "SMART":
-            data["model"] = "zai"
-            data["fallbacks"] = ["nvidia", "gemma4", "longcat"]
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=zai fallbacks={data['fallbacks']}")
+            data["model"] = "zai51"
+            data["fallbacks"] = ["zai47", "nvidia", "longcat", "gemma4"]
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=zai51 fallbacks={data['fallbacks']}")
 
     def _get_response_preview(self, response_obj, max_chars: int = 200) -> str:
         """Safely parses content and reasoning sections to return a concise log preview."""
