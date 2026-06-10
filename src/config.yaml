@@ -152,8 +152,8 @@ router_settings:
   # LiteLLM processes fallback chains in a flat manner. It does not recurse.
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
-  - FAST: [ "gemma4", "nvidia", "longcat", "zai47", "zai51" ]
-  - SMART: [ "zai51", "zai47", "nvidia", "longcat", "gemma4" ]
+  - FAST: [ "gemma4", "longcat", "zai47", "zai51", "nvidia" ]
+  - SMART: [ "zai51", "zai47", "longcat", "gemma4", "nvidia" ]
   - nvidia: []
   - gemma4: []
   - longcat: []
