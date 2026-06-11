@@ -46,21 +46,42 @@ model_list:
 # --- NVIDIA Pool ---
 - model_name: nvidia
   litellm_params:
-    model: openai/qwen/qwen3-coder-480b-a35b-instruct
+    model: openai/openai/gpt-oss-120b
     api_base: os.environ/NVIDIA_PROXY_BASE1 # Resolves from environment variable at runtime
     api_key: os.environ/NVIDIA_API_KEY1
     drop_params: true # Drop unsupported parameters to prevent 400 Bad Request errors
 
 - model_name: nvidia
   litellm_params:
-    model: openai/nvidia/nemotron-3-super-120b-a12b
+    model: openai/openai/gpt-oss-120b
     api_base: os.environ/NVIDIA_PROXY_BASE2
     api_key: os.environ/NVIDIA_API_KEY2
     drop_params: true
 
 - model_name: nvidia
   litellm_params:
-    model: openai/qwen/qwen3.5-397b-a17b
+    model: openai/openai/gpt-oss-120b
+    api_base: os.environ/NVIDIA_PROXY_BASE3
+    api_key: os.environ/NVIDIA_API_KEY3
+    drop_params: true
+
+- model_name: nvidia
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE1 # Resolves from environment variable at runtime
+    api_key: os.environ/NVIDIA_API_KEY1
+    drop_params: true # Drop unsupported parameters to prevent 400 Bad Request errors
+
+- model_name: nvidia
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE2
+    api_key: os.environ/NVIDIA_API_KEY2
+    drop_params: true
+
+- model_name: nvidia
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
     api_base: os.environ/NVIDIA_PROXY_BASE3
     api_key: os.environ/NVIDIA_API_KEY3
     drop_params: true
