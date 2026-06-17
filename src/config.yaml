@@ -46,24 +46,43 @@ model_list:
 # --- NVIDIA Pool ---
 - model_name: nvidia
   litellm_params:
-    model: openai/openai/gpt-oss-120b
+    model: openai/z-ai/glm-5.1
     api_base: os.environ/NVIDIA_PROXY_BASE1 # Resolves from environment variable at runtime
     api_key: os.environ/NVIDIA_API_KEY1
     drop_params: true # Drop unsupported parameters to prevent 400 Bad Request errors
+    rpm: 2 # to spread the load
 
 - model_name: nvidia
   litellm_params:
-    model: openai/openai/gpt-oss-120b
+    model: openai/z-ai/glm-5.1
     api_base: os.environ/NVIDIA_PROXY_BASE2
     api_key: os.environ/NVIDIA_API_KEY2
     drop_params: true
+    rpm: 2 # to spread the load
 
 - model_name: nvidia
   litellm_params:
-    model: openai/openai/gpt-oss-120b
+    model: openai/z-ai/glm-5.1
     api_base: os.environ/NVIDIA_PROXY_BASE3
     api_key: os.environ/NVIDIA_API_KEY3
     drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE4
+    api_key: os.environ/NVIDIA_API_KEY4
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE5
+    api_key: os.environ/NVIDIA_API_KEY5
+    drop_params: true
+    rpm: 2 # to spread the load        
 
 - model_name: nvidia
   litellm_params:
@@ -71,6 +90,7 @@ model_list:
     api_base: os.environ/NVIDIA_PROXY_BASE1 # Resolves from environment variable at runtime
     api_key: os.environ/NVIDIA_API_KEY1
     drop_params: true # Drop unsupported parameters to prevent 400 Bad Request errors
+    rpm: 2 # to spread the load
 
 - model_name: nvidia
   litellm_params:
@@ -78,6 +98,7 @@ model_list:
     api_base: os.environ/NVIDIA_PROXY_BASE2
     api_key: os.environ/NVIDIA_API_KEY2
     drop_params: true
+    rpm: 2 # to spread the load
 
 - model_name: nvidia
   litellm_params:
@@ -85,6 +106,23 @@ model_list:
     api_base: os.environ/NVIDIA_PROXY_BASE3
     api_key: os.environ/NVIDIA_API_KEY3
     drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE4
+    api_key: os.environ/NVIDIA_API_KEY4
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE5
+    api_key: os.environ/NVIDIA_API_KEY5
+    drop_params: true
+    rpm: 2 # to spread the load     
 
 # --- Gemma 4 Pool ---
 - model_name: gemma4
@@ -95,7 +133,7 @@ model_list:
     drop_params: true
     # Exclude specific parameters that cause Gemma engines to error out:
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
-    rpm: 5 # Rate limit tracking (Requests Per Minute)
+    rpm: 5 # to spread the load
 
 - model_name: gemma4
   litellm_params:
@@ -104,7 +142,7 @@ model_list:
     api_key: os.environ/GOOGLE_API_KEY2
     drop_params: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
-    rpm: 5
+    rpm: 5 # to spread the load
 
 - model_name: gemma4
   litellm_params:
@@ -113,7 +151,7 @@ model_list:
     api_key: os.environ/GOOGLE_API_KEY3
     drop_params: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
-    rpm: 5
+    rpm: 5 # to spread the load
 
 # --- LongCat Pools ---
 
@@ -177,8 +215,8 @@ router_settings:
   # LiteLLM processes fallback chains in a flat manner. It does not recurse.
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
-  - FAST: [ "gemma4", "longcat", "zai47", "zai51", "nvidia" ]
-  - SMART: [ "zai52", "zai51", "zai47", "longcat", "gemma4", "nvidia" ]
+  - FAST: [ "gemma4", "longcat", "nvidia", "zai47", "zai51" ]
+  - SMART: [ "nvidia", "longcat", "zai52", "zai51", "zai47", "gemma4" ]
   - nvidia: []
   - gemma4: []
   - longcat: []
@@ -187,8 +225,8 @@ router_settings:
   - zai47: [ "zai51" ]
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
-  - FAST: [ "gemma4", "longcat", "zai47", "zai51", "nvidia" ]
-  - SMART: [ "zai52", "zai51", "zai47", "longcat", "gemma4", "nvidia" ]
+  - FAST: [ "gemma4", "longcat", "nvidia", "zai47", "zai51" ]
+  - SMART: [ "nvidia", "longcat", "zai52", "zai51", "zai47", "gemma4" ]
 
   timeout: 180 # Timeout calls to a provider after 180 seconds
   num_retries: 0 # Retries: 0 ensures immediate fallback on error instead of retrying a dead node
