@@ -43,16 +43,20 @@ def log_to_file(message: str):
 
 class UniversalGarbageHandler(CustomLogger):
     """
-    A LiteLLM custom callback class. 
-    
+    A LiteLLM custom callback class.
+
     This class hooks into the router lifecycle to:
     1. Translate virtual models (FAST/SMART) into active endpoints before calling them.
     2. Inspect incoming LLM outputs (both standard completions and streams).
     3. Programmatically quarantine (cooldown) any deployment returning garbage/refusals.
     """
 
-    # Cooldown duration: must match router_settings.cooldown_time in config.yaml
-    COOLDOWN_SECONDS = 600  
+    COOLDOWN_SECONDS = 600
+    EMPTY_RESPONSE_COOLDOWN_SECONDS = 120
+    CONSECUTIVE_FAILURE_THRESHOLD = 3
+
+    _deployment_failures: dict[str, int] = {}
+    _deployment_last_failure: dict[str, float] = {}  
 
     # regular expressions to identify common system alignment/moderation refusals
     REFUSAL_PATTERNS = [
@@ -197,41 +201,100 @@ class UniversalGarbageHandler(CustomLogger):
             return model_id
         return ""
 
+    def _is_retry_available(self, kwargs: dict) -> bool:
+        litellm_params = kwargs.get("litellm_params", {})
+        metadata = litellm_params.get("metadata", {})
+        attempt = metadata.get("attempt", 1)
+        retry_count = litellm_params.get("retry_count", 0)
+        if attempt <= 1 and retry_count > 0:
+            return True
+        if attempt > 1:
+            return False
+        return False
+
+    def _increment_failure(self, deployment_id: str, is_failure: bool):
+        import time
+        if is_failure:
+            self._deployment_failures[deployment_id] = self._deployment_failures.get(deployment_id, 0) + 1
+            self._deployment_last_failure[deployment_id] = time.monotonic()
+        else:
+            self._deployment_failures.pop(deployment_id, None)
+            self._deployment_last_failure.pop(deployment_id, None)
+
+    def _should_mark_dead(self, deployment_id: str, reason: str) -> bool:
+        import time
+
+        if self._is_retry_available_kwargs={}):
+            log_to_file(f"[RETRY_PENDING] deployment={deployment_id[:16]}... reason={reason} — skipping cooldown, retry may succeed")
+            return False
+
+        if reason == "response_is_empty":
+            threshold = max(self.CONSECUTIVE_FAILURE_THRESHOLD, 3)
+            cooldown = self.EMPTY_RESPONSE_COOLDOWN_SECONDS
+        else:
+            threshold = 1
+            cooldown = self.COOLDOWN_SECONDS
+
+        consecutive = self._deployment_failures.get(deployment_id, 0)
+
+        if reason == "response_is_empty" and consecutive < threshold:
+            last = self._deployment_last_failure.get(deployment_id, 0)
+            if last and (time.monotonic() - last > self.EMPTY_RESPONSE_COOLDOWN_SECONDS):
+                self._deployment_failures.pop(deployment_id, None)
+                self._deployment_last_failure.pop(deployment_id, None)
+                consecutive = 0
+            if consecutive < threshold:
+                log_to_file(f"[FAILURE_ACCUMULATING] deployment={deployment_id[:16]}... reason={reason} count={consecutive + 1}/{threshold}")
+                return False
+
+        return True
+
     def _mark_deployment_dead(self, deployment_id: str, reason: str):
         """
-        Manually triggers a failover on a model node by flagging it in the 
-        active cooldown cache. The node remains inactive for COOLDOWN_SECONDS.
+        Manually triggers a failover on a model node by flagging it in the
+        active cooldown cache. The node remains inactive for COOLDOWN_SECONDS
+        (or a shorter duration for empty responses).
         """
-        msg = f"[UniversalGarbageHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason})"
+        if not self._should_mark_dead(deployment_id, reason):
+            self._increment_failure(deployment_id, True)
+            return
+
+        self._increment_failure(deployment_id, True)
+
+        cooldown = (
+            self.EMPTY_RESPONSE_COOLDOWN_SECONDS
+            if reason == "response_is_empty"
+            else self.COOLDOWN_SECONDS
+        )
+
+        msg = f"[UniversalGarbageHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason}, cooldown: {cooldown}s)"
         print(msg)
-        log_to_file(f"[DEPLOYMENT_DEAD] deployment={deployment_id[:16]}... reason={reason}")
-        
+        log_to_file(f"[DEPLOYMENT_DEAD] deployment={deployment_id[:16]}... reason={reason} cooldown={cooldown}s")
+
         try:
             from litellm.proxy.proxy_server import llm_router
             if llm_router is None or not hasattr(llm_router, 'cooldown_cache'):
                 return
-                
-            # Create a mock internal error exception to trigger LiteLLM's fallback logic
+
             fake_exception = litellm.InternalServerError(
                 message=f"Garbage response detected: {reason}",
                 model=deployment_id,
                 llm_provider="",
             )
-            
-            # Accommodate variations across different LiteLLM package versions
+
             try:
                 llm_router.cooldown_cache.add_deployment_to_cooldown(
                     model_id=deployment_id,
                     original_exception=fake_exception,
                     exception_status=500,
-                    cooldown_time=float(self.COOLDOWN_SECONDS),
+                    cooldown_time=float(cooldown),
                 )
             except TypeError:
                 llm_router.cooldown_cache.add_deployment_to_cooldown(
                     deployment_id=deployment_id,
                     original_exception=fake_exception,
                     exception_status=500,
-                    cooldown_time=float(self.COOLDOWN_SECONDS),
+                    cooldown_time=float(cooldown),
                 )
         except Exception as e:
             log_to_file(f"[ERROR] Failed to mark deployment dead: {e}")
@@ -263,6 +326,8 @@ class UniversalGarbageHandler(CustomLogger):
         if is_garbage:
             log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
             self._mark_deployment_dead(deployment_id, reason)
+        else:
+            self._increment_failure(deployment_id, False)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Lifecycle Hook 3: Logging and Output Auditing (Streaming Completions)
@@ -282,6 +347,8 @@ class UniversalGarbageHandler(CustomLogger):
         if is_garbage:
             log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
             self._mark_deployment_dead(deployment_id, f"stream_{reason}")
+        else:
+            self._increment_failure(deployment_id, False)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Lifecycle Hook 4: Logging Natural Failures (e.g., Timeout, 429 Rate Limit)
