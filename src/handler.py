@@ -227,14 +227,15 @@ class UniversalGarbageHandler(CustomLogger):
             log_to_file(f"[RETRY_PENDING] deployment={deployment_id[:16]}... reason={reason} - skipping cooldown, retry may succeed")
             return False
 
-        if reason == "response_is_empty":
+        base_reason = reason.removeprefix("stream_")
+        if base_reason == "response_is_empty":
             threshold = max(self.CONSECUTIVE_FAILURE_THRESHOLD, 3)
         else:
             threshold = 1
 
         consecutive = self._deployment_failures.get(deployment_id, 0)
 
-        if reason == "response_is_empty" and consecutive < threshold:
+        if base_reason == "response_is_empty" and consecutive < threshold:
             last = self._deployment_last_failure.get(deployment_id, 0)
             if last and (time.monotonic() - last > self.EMPTY_RESPONSE_COOLDOWN_SECONDS):
                 self._deployment_failures.pop(deployment_id, None)
@@ -258,9 +259,10 @@ class UniversalGarbageHandler(CustomLogger):
 
         self._increment_failure(deployment_id, True)
 
+        base_reason = reason.removeprefix("stream_")
         cooldown = (
             self.EMPTY_RESPONSE_COOLDOWN_SECONDS
-            if reason == "response_is_empty"
+            if base_reason == "response_is_empty"
             else self.COOLDOWN_SECONDS
         )
 
