@@ -96,20 +96,16 @@ class UniversalGarbageHandler(CustomLogger):
         model = data.get("model")
         if model == "FAST":
             data["model"] = "google/gemma4"
-            data["fallbacks"] = ["longcat/longcat", "nvidia/kimik26", "nvidia/glm51", "zai/glm47"]
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=FAST -> target=google/gemma4 fallbacks={data['fallbacks']}")
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=FAST -> target=google/gemma4")
         elif model == "SMART":
             data["model"] = "nvidia/glm51"
-            data["fallbacks"] = ["bm/glm51", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat"]
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=nvidia/glm51 fallbacks={data['fallbacks']}")
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=nvidia/glm51")
         elif model == "CODE":
             data["model"] = "nvidia/glm51"
-            data["fallbacks"] = ["bm/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat", "zai/glm47"]
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=CODE -> target=nvidia/glm51 fallbacks={data['fallbacks']}")
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=CODE -> target=nvidia/glm51")
         elif model == "GOON":
             data["model"] = "nvidia/glm51"
-            data["fallbacks"] = ["nvidia/kimik26", "longcat/longcat", "google/gemma4"]
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=GOON -> target=nvidia/glm51 fallbacks={data['fallbacks']}")
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=GOON -> target=nvidia/glm51")
 
     def _get_response_preview(self, response_obj, max_chars: int = 200) -> str:
         """Safely parses content and reasoning sections to return a concise log preview."""
@@ -187,6 +183,8 @@ class UniversalGarbageHandler(CustomLogger):
         else:
             # Check 5: Empty response detection
             if not combined_text.strip():
+                if reasoning.strip():
+                    return False, ""
                 return True, "response_is_empty"
                 
         return False, ""
