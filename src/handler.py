@@ -129,25 +129,18 @@ class UniversalGarbageHandler(CustomLogger):
 
     def _expects_json(self, kwargs: dict) -> bool:
         """
-        Heuristic function to check if the caller expects structural JSON.
-        Evaluates system arguments and user prompts.
+        Checks if the caller explicitly expects structural JSON via response_format.
+        Only checks the response_format parameter — not message content heuristics,
+        which cause false positives when prompts discuss JSON without requesting it.
         """
-        # Step 1: Check standard response_format parameters
         litellm_params = kwargs.get("litellm_params", {})
         response_format = litellm_params.get("response_format") or kwargs.get("response_format", {})
-        
+
         if isinstance(response_format, dict):
             req_type = response_format.get("type", "")
             if req_type in ["json_schema", "json_object"]:
                 return True
 
-        # Step 2: Check for explicit prompts requesting JSON format
-        messages = kwargs.get("messages", [])
-        for msg in messages:
-            content = str(msg.get("content", "")).lower()
-            if "output json" in content or "return json" in content or "```json" in content or "输出类型：json" in content:
-                return True
-                
         return False
 
     def _looks_like_garbage(self, response_obj, kwargs: dict) -> tuple[bool, str]:
