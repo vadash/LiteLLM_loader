@@ -181,19 +181,22 @@ class UniversalGarbageHandler(CustomLogger):
         if re.match(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', combined_text, re.IGNORECASE):
             return True, "leaked_html_document"
             
-        # Check 4: JSON Validation Heuristic
+        # Check 4: JSON Format Mismatch
+        # When the client requests JSON but the model returns prose/empty,
+        # log the mismatch but do NOT mark the deployment as dead.
+        # The fallback chain will try the next model instead.
         if self._expects_json(kwargs):
+            model_name = self._get_model_alias(kwargs)
             if not actual_content.strip():
-                return True, "safety_trip_empty_json_content"
-            if '{' not in actual_content and '[' not in actual_content:
-                return True, "missing_json_structure_in_content"
+                log_to_file(f"[JSON_FORMAT_MISMATCH] model={model_name} empty content but JSON expected in response_format/messages")
+            elif '{' not in actual_content and '[' not in actual_content:
+                log_to_file(f"[JSON_FORMAT_MISMATCH] model={model_name} no JSON structure in response (prose returned instead)")
         else:
             # Check 5: Empty response detection
             if not combined_text.strip():
                 return True, "response_is_empty"
                 
         return False, ""
-
     def _get_deployment_id(self, kwargs) -> str:
         """Retrieves the unique, long-form identifier of the targeted model node."""
         litellm_params = kwargs.get("litellm_params") or {}
