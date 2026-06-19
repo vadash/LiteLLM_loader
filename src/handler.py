@@ -245,12 +245,21 @@ class UniversalGarbageHandler(CustomLogger):
     # ─────────────────────────────────────────────────────────────────────────
     # Lifecycle Hook 2: Logging and Output Auditing (Non-Streaming)
     # ─────────────────────────────────────────────────────────────────────────
+    def _get_model_alias(self, kwargs) -> str:
+        """Returns the user-facing model alias (e.g. 'nvidia/glm51') instead of the provider model."""
+        return (
+            kwargs.get("litellm_params", {})
+            .get("metadata", {})
+            .get("model_group")
+            or kwargs.get("model", "unknown")
+        )
+
     async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
         """Triggered upon any successful standard chat completion."""
         deployment_id = self._get_deployment_id(kwargs)
-        model_name = kwargs.get("model", "unknown")
+        model_name = self._get_model_alias(kwargs)
         preview = self._get_response_preview(response_obj)
-        
+
         log_to_file(f"[RESPONSE] model={model_name} deploy={deployment_id[:12]} preview={preview!r}")
 
         if not deployment_id:
@@ -267,9 +276,9 @@ class UniversalGarbageHandler(CustomLogger):
     async def async_log_stream_complete_event(self, kwargs, response_obj, start_time, end_time):
         """Triggered after an entire stream of tokens has completed."""
         deployment_id = self._get_deployment_id(kwargs)
-        model_name = kwargs.get("model", "unknown")
+        model_name = self._get_model_alias(kwargs)
         preview = self._get_response_preview(response_obj)
-        
+
         log_to_file(f"[STREAM_COMPLETE] model={model_name} deploy={deployment_id[:12]} preview={preview!r}")
 
         if not deployment_id:
@@ -286,12 +295,12 @@ class UniversalGarbageHandler(CustomLogger):
     async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
         """Triggered if an API call fails due to standard provider errors."""
         deployment_id = self._get_deployment_id(kwargs)
-        model_name = kwargs.get("model", "unknown")
-        
+        model_name = self._get_model_alias(kwargs)
+
         exception = kwargs.get("exception") or kwargs.get("original_exception") or response_obj
         exception_type = type(exception).__name__ if exception else "Unknown"
         exception_msg = str(exception)[:200] if exception else "no details"
-        
+
         log_to_file(f"[PROVIDER_FAILURE] model={model_name} deploy={deployment_id[:12]} error={exception_type}: {exception_msg!r}")
 
 # Instantiate class to automatically register callback within LiteLLM
