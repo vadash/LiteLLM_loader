@@ -223,27 +223,22 @@ class UniversalGarbageHandler(CustomLogger):
             self._deployment_last_failure.pop(deployment_id, None)
 
     def _should_mark_dead(self, deployment_id: str, reason: str, kwargs: dict) -> bool:
-        if self._is_retry_available(kwargs):
-            log_to_file(f"[RETRY_PENDING] deployment={deployment_id[:16]}... reason={reason} - skipping cooldown, retry may succeed")
-            return False
-
         base_reason = reason.removeprefix("stream_")
+
         if base_reason == "response_is_empty":
-            threshold = max(self.CONSECUTIVE_FAILURE_THRESHOLD, 3)
-        else:
-            threshold = 1
-
-        consecutive = self._deployment_failures.get(deployment_id, 0)
-
-        if base_reason == "response_is_empty" and consecutive < threshold:
             last = self._deployment_last_failure.get(deployment_id, 0)
             if last and (time.monotonic() - last > self.EMPTY_RESPONSE_COOLDOWN_SECONDS):
                 self._deployment_failures.pop(deployment_id, None)
                 self._deployment_last_failure.pop(deployment_id, None)
-                consecutive = 0
-            if consecutive < threshold:
-                log_to_file(f"[FAILURE_ACCUMULATING] deployment={deployment_id[:16]}... reason={reason} count={consecutive + 1}/{threshold}")
+            consecutive = self._deployment_failures.get(deployment_id, 0) + 1
+            if consecutive < self.CONSECUTIVE_FAILURE_THRESHOLD:
+                log_to_file(f"[FAILURE_ACCUMULATING] deployment={deployment_id[:16]}... reason={reason} count={consecutive}/{self.CONSECUTIVE_FAILURE_THRESHOLD}")
                 return False
+            return True
+
+        if self._is_retry_available(kwargs):
+            log_to_file(f"[RETRY_PENDING] deployment={deployment_id[:16]}... reason={reason} - skipping cooldown, retry may succeed")
+            return False
 
         return True
 
