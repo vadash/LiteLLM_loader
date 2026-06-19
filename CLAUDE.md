@@ -45,24 +45,26 @@ All scripts are thin wrappers around `litellm_ctl.py` which tracks the process v
 
 ### Latency-Based Fallback Routing (`src/config.yaml`)
 
-Models are organized into **user-facing groups** (`FAST`, `SMART`) and **reusable fallback groups** (`nvidia_qwen3x`, `nvidia_kimi2`, `nvidia_glm`, `zai`, `zai_free`, `gemma4`, `longcat`, `ali`).
+Models are organized into **user-facing groups** (`FAST`, `SMART`) and **reusable fallback groups** (`nvidia/glm51`, `nvidia/kimik26`, `google/gemma4`, `longcat/longcat`, `zai/glm47`, `zai/glm51`, `zai/glm52`, `bm/glm51`, `bm/kimik26`).
+
+All model names follow `PROVIDERCODE_MODELNAME` convention (e.g., `nvidia/kimik26`, `zai/glm51`, `google/gemma4`).
 
 The router uses **latency-based routing** with `lowest_latency_buffer: 0.3` to pick the fastest deployment within each group.
 
 **User-facing groups:**
-- `FAST` — prioritizes gemma4, then Qwen via NVIDIA
+- `FAST` — prioritizes google/gemma4, then Kimi via NVIDIA
 - `SMART` — prioritizes z.ai GLM models
 
 **Fallback chain** (primary → last resort):
 ```
-FAST → gemma4 → nvidia_qwen3x → longcat → nvidia_kimi2 → nvidia_glm → zai → ali
-SMART → zai → ali → nvidia_qwen3x → gemma4 → longcat → nvidia_kimi2 → nvidia_glm
+FAST → google/gemma4 → longcat/longcat → nvidia/kimik26 → zai/glm47 → zai/glm51
+SMART → nvidia/kimik26 → longcat/longcat → zai/glm52 → zai/glm51 → zai/glm47 → google/gemma4
 ```
 
 **Content policy fallbacks** (triggered by `ContentPolicyViolationError`):
 ```
-FAST → gemma4 → zai_free → nvidia_qwen3x → longcat → nvidia_kimi2 → nvidia_glm → ali → zai
-SMART → ali → nvidia_qwen3x → gemma4 → longcat → nvidia_kimi2 → nvidia_glm → zai
+FAST → google/gemma4 → longcat/longcat → nvidia/kimik26 → zai/glm47 → zai/glm51
+SMART → nvidia/kimik26 → longcat/longcat → zai/glm52 → zai/glm51 → zai/glm47 → google/gemma4
 ```
 
 **Fallback resolution is FLAT (not recursive):** When a group fails, the router iterates that group's list directly without consulting each model's own fallback entry. Every group must still have an empty fallback entry (`[]`) to avoid crash loops.
@@ -93,8 +95,9 @@ Background health checks are **disabled** (`background_health_checks: false`). M
 
 ## Adding a New Model
 
-1. Add model entries in `src/config.yaml` under `model_list` with a unique `model_name`
+1. Add model entries in `src/config.yaml` under `model_list` with `model_name` following `PROVIDERCODE_MODELNAME` convention (e.g., `zai/glm52`, `nvidia/kimik26`)
 2. Append to both `fallbacks` and `content_policy_fallbacks` lists in `router_settings`
 3. Add an empty fallback entry (`- model_name: []`) at the end of `fallbacks`
+4. Update `src/handler.py` rewrite logic if the model is a virtual entry point target
 
 **Important:** If the model appears as a fallback target, it must also have its own fallback entry (even if empty) to avoid crash loops.

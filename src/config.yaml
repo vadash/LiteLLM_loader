@@ -9,8 +9,8 @@
 # 2. A custom handler (handler.py) intercepts the request *before* routing.
 # 3. The handler rewrites the model to the primary target and injects the
 #    appropriate fallback chain.
-# 4. If a provider returns garbage, safety refusals, or crashes, the handler 
-#    cooldowns that specific deployment for 10 minutes (600s), and the router 
+# 4. If a provider returns garbage, safety refusals, or crashes, the handler
+#    cooldowns that specific deployment for 10 minutes (600s), and the router
 #    seamlessly tries the next option in the fallback list.
 # ==============================================================================
 
@@ -39,12 +39,12 @@ model_list:
 # ────────────────────────────────────────────────────────────────────────────
 # 2. Reusable Fallback & Load-Balancing Groups
 # ────────────────────────────────────────────────────────────────────────────
-# When multiple entries share the same 'model_name', LiteLLM automatically groups 
+# When multiple entries share the same 'model_name', LiteLLM automatically groups
 # them into a load-balanced pool. If one fails, LiteLLM tries the others.
 # ────────────────────────────────────────────────────────────────────────────
 
-# --- NVIDIA Pool ---
-- model_name: nvidia
+# --- NVIDIA GLM-5.1 Pool ---
+- model_name: nvidia/glm51
   litellm_params:
     model: openai/z-ai/glm-5.1
     api_base: os.environ/NVIDIA_PROXY_BASE1 # Resolves from environment variable at runtime
@@ -52,7 +52,7 @@ model_list:
     drop_params: true # Drop unsupported parameters to prevent 400 Bad Request errors
     rpm: 2 # to spread the load
 
-- model_name: nvidia
+- model_name: nvidia/glm51
   litellm_params:
     model: openai/z-ai/glm-5.1
     api_base: os.environ/NVIDIA_PROXY_BASE2
@@ -60,7 +60,7 @@ model_list:
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia
+- model_name: nvidia/glm51
   litellm_params:
     model: openai/z-ai/glm-5.1
     api_base: os.environ/NVIDIA_PROXY_BASE3
@@ -68,7 +68,7 @@ model_list:
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia
+- model_name: nvidia/glm51
   litellm_params:
     model: openai/z-ai/glm-5.1
     api_base: os.environ/NVIDIA_PROXY_BASE4
@@ -76,15 +76,16 @@ model_list:
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia
+- model_name: nvidia/glm51
   litellm_params:
     model: openai/z-ai/glm-5.1
     api_base: os.environ/NVIDIA_PROXY_BASE5
     api_key: os.environ/NVIDIA_API_KEY5
     drop_params: true
-    rpm: 2 # to spread the load        
+    rpm: 2 # to spread the load
 
-- model_name: nvidia
+# --- NVIDIA Kimi-K2.6 Pool ---
+- model_name: nvidia/kimik26
   litellm_params:
     model: openai/moonshotai/kimi-k2.6
     api_base: os.environ/NVIDIA_PROXY_BASE1 # Resolves from environment variable at runtime
@@ -92,7 +93,7 @@ model_list:
     drop_params: true # Drop unsupported parameters to prevent 400 Bad Request errors
     rpm: 2 # to spread the load
 
-- model_name: nvidia
+- model_name: nvidia/kimik26
   litellm_params:
     model: openai/moonshotai/kimi-k2.6
     api_base: os.environ/NVIDIA_PROXY_BASE2
@@ -100,7 +101,7 @@ model_list:
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia
+- model_name: nvidia/kimik26
   litellm_params:
     model: openai/moonshotai/kimi-k2.6
     api_base: os.environ/NVIDIA_PROXY_BASE3
@@ -108,7 +109,7 @@ model_list:
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia
+- model_name: nvidia/kimik26
   litellm_params:
     model: openai/moonshotai/kimi-k2.6
     api_base: os.environ/NVIDIA_PROXY_BASE4
@@ -116,16 +117,16 @@ model_list:
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia
+- model_name: nvidia/kimik26
   litellm_params:
     model: openai/moonshotai/kimi-k2.6
     api_base: os.environ/NVIDIA_PROXY_BASE5
     api_key: os.environ/NVIDIA_API_KEY5
     drop_params: true
-    rpm: 2 # to spread the load     
+    rpm: 2 # to spread the load
 
-# --- Gemma 4 Pool ---
-- model_name: gemma4
+# --- Google Gemma 4 Pool ---
+- model_name: google/gemma4
   litellm_params:
     model: openai/gemma-4-31b-it
     api_base: os.environ/GOOGLE_PROXY_BASE1
@@ -135,7 +136,7 @@ model_list:
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
     rpm: 5 # to spread the load
 
-- model_name: gemma4
+- model_name: google/gemma4
   litellm_params:
     model: openai/gemma-4-31b-it
     api_base: os.environ/GOOGLE_PROXY_BASE2
@@ -144,7 +145,7 @@ model_list:
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
     rpm: 5 # to spread the load
 
-- model_name: gemma4
+- model_name: google/gemma4
   litellm_params:
     model: openai/gemma-4-31b-it
     api_base: os.environ/GOOGLE_PROXY_BASE3
@@ -153,9 +154,9 @@ model_list:
     additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
     rpm: 5 # to spread the load
 
-# --- LongCat Pools ---
+# --- LongCat Pool ---
 
-- model_name: longcat
+- model_name: longcat/longcat
   litellm_params:
     model: openai/LongCat-2.0-Preview
     api_base: os.environ/LONGCAT_PROXY_BASE1
@@ -163,8 +164,8 @@ model_list:
     rpm: 10
     drop_params: true
 
-# --- GLM / Zai Pools ---
-- model_name: zai52
+# --- ZAI GLM Pools ---
+- model_name: zai/glm52
   litellm_params:
     model: anthropic/glm-5.2
     api_base: os.environ/ZAI_PROXY_BASE1
@@ -175,7 +176,7 @@ model_list:
     supported_openai_params: [ "thinking", "clear_thinking" ]
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
-- model_name: zai51
+- model_name: zai/glm51
   litellm_params:
     model: anthropic/glm-5.1
     api_base: os.environ/ZAI_PROXY_BASE1
@@ -186,7 +187,7 @@ model_list:
     supported_openai_params: [ "thinking", "clear_thinking" ]
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
-- model_name: zai47
+- model_name: zai/glm47
   litellm_params:
     model: anthropic/glm-4.7
     api_base: os.environ/ZAI_PROXY_BASE1
@@ -198,7 +199,7 @@ model_list:
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 # --- Bluesminds ---
-- model_name: bm-glm51
+- model_name: bm/glm51
   litellm_params:
     model: openai/z-ai/glm-5.1
     api_base: os.environ/BM_PROXY_BASE1
@@ -209,7 +210,7 @@ model_list:
     supported_openai_params: [ "thinking", "clear_thinking" ]
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
-- model_name: bm-kimik26
+- model_name: bm/kimik26
   litellm_params:
     model: openai/moonshotai/kimi-k2.6
     api_base: os.environ/BM_PROXY_BASE1
@@ -238,18 +239,19 @@ router_settings:
   # LiteLLM processes fallback chains in a flat manner. It does not recurse.
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
-  - FAST: [ "gemma4", "longcat", "nvidia", "zai47", "zai51" ]
-  - SMART: [ "nvidia", "longcat", "zai52", "zai51", "zai47", "gemma4" ]
-  - nvidia: []
-  - gemma4: []
-  - longcat: []
-  - zai52: [ "zai51" ]
-  - zai51: [ "zai47" ]
-  - zai47: [ "zai51" ]
+  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "zai/glm47", "zai/glm51" ]
+  - SMART: [ "nvidia/kimik26", "longcat/longcat", "zai/glm52", "zai/glm51", "zai/glm47", "google/gemma4" ]
+  - nvidia/glm51: []
+  - nvidia/kimik26: []
+  - google/gemma4: []
+  - longcat/longcat: []
+  - zai/glm52: [ "zai/glm51" ]
+  - zai/glm51: [ "zai/glm47" ]
+  - zai/glm47: [ "zai/glm51" ]
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
-  - FAST: [ "gemma4", "longcat", "nvidia", "zai47", "zai51" ]
-  - SMART: [ "nvidia", "longcat", "zai52", "zai51", "zai47", "gemma4" ]
+  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "zai/glm47", "zai/glm51" ]
+  - SMART: [ "nvidia/kimik26", "longcat/longcat", "zai/glm52", "zai/glm51", "zai/glm47", "google/gemma4" ]
 
   timeout: 180 # Timeout calls to a provider after 180 seconds
   num_retries: 0 # Retries: 0 ensures immediate fallback on error instead of retrying a dead node

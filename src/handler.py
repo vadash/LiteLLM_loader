@@ -96,14 +96,14 @@ class UniversalGarbageHandler(CustomLogger):
         model = data.get("model")
         if model == "FAST":
             # Change the destination model name
-            data["model"] = "gemma4"
+            data["model"] = "google/gemma4"
             # Explicitly define fallback models for this specific request
-            data["fallbacks"] = ["longcat", "nvidia", "zai47", "zai51"]
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=FAST -> target=gemma4 fallbacks={data['fallbacks']}")
+            data["fallbacks"] = ["longcat/longcat", "nvidia/kimik26", "zai/glm47", "zai/glm51"]
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=FAST -> target=google/gemma4 fallbacks={data['fallbacks']}")
         elif model == "SMART":
-            data["model"] = "nvidia"
-            data["fallbacks"] = ["longcat", "zai52", "zai51", "zai47", "gemma4"]
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=nvidia fallbacks={data['fallbacks']}")
+            data["model"] = "nvidia/kimik26"
+            data["fallbacks"] = ["longcat/longcat", "zai/glm52", "zai/glm51", "zai/glm47", "google/gemma4"]
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=nvidia/kimik26 fallbacks={data['fallbacks']}")
 
     def _get_response_preview(self, response_obj, max_chars: int = 200) -> str:
         """Safely parses content and reasoning sections to return a concise log preview."""
