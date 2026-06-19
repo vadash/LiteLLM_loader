@@ -1,8 +1,8 @@
 import litellm
 from litellm.integrations.custom_logger import CustomLogger
-import re
 import pathlib
 import logging
+import re
 import time
 from datetime import datetime
 
@@ -25,9 +25,8 @@ class SuppressNoisyRouterErrors(logging.Filter):
         return True
 
 # Attach the custom filter to LiteLLM's internal system loggers
-logging.getLogger("LiteLLM Router").addFilter(SuppressNoisyRouterErrors())
-logging.getLogger("LiteLLM").addFilter(SuppressNoisyRouterErrors())
-logging.getLogger("litellm").addFilter(SuppressNoisyRouterErrors())
+for _logger_name in ("LiteLLM Router", "LiteLLM", "litellm"):
+    logging.getLogger(_logger_name).addFilter(SuppressNoisyRouterErrors())
 # =========================================================================
 
 LOG_FILE = pathlib.Path(__file__).parent / "litellm.log"
@@ -47,7 +46,7 @@ class UniversalGarbageHandler(CustomLogger):
     A LiteLLM custom callback class.
 
     This class hooks into the router lifecycle to:
-    1. Translate virtual models (FAST/SMART) into active endpoints before calling them.
+    1. Translate virtual models (FAST/SMART/CODE/GOON) into active endpoints before calling them.
     2. Inspect incoming LLM outputs (both standard completions and streams).
     3. Programmatically quarantine (cooldown) any deployment returning garbage/refusals.
     """
@@ -56,10 +55,16 @@ class UniversalGarbageHandler(CustomLogger):
     EMPTY_RESPONSE_COOLDOWN_SECONDS = 120
     CONSECUTIVE_FAILURE_THRESHOLD = 3
 
-    _deployment_failures: dict[str, int] = {}
-    _deployment_last_failure: dict[str, float] = {}
+    # Virtual entry points -> real model group. Each alias is rewritten in
+    # async_pre_call_hook so the dummy config entries never actually fire.
+    VIRTUAL_MODEL_MAP = {
+        "FAST": "google/gemma4",
+        "SMART": "nvidia/glm51",
+        "CODE": "nvidia/glm51",
+        "GOON": "nvidia/glm51",
+    }
 
-    # regular expressions to identify common system alignment/moderation refusals
+    # Regular expressions to identify common system alignment/moderation refusals.
     REFUSAL_PATTERNS = [
         # English Refusal Patterns
         r"I can(?:not|'t) (?:fulfill|comply with|process) (?:this|your) request",
@@ -86,32 +91,43 @@ class UniversalGarbageHandler(CustomLogger):
     # Add loop detection / gibberish detection signatures here as needed
     GARBAGE_PATTERNS = []
 
+    # Pre-compiled regexes. Compiling once at class load avoids re-parsing the
+    # patterns on every response check, which matters under heavy load.
+    _COMPILED_REFUSAL = tuple(re.compile(p, re.IGNORECASE) for p in REFUSAL_PATTERNS)
+    _COMPILED_GARBAGE = tuple(re.compile(p, re.IGNORECASE) for p in GARBAGE_PATTERNS)
+
+    # HTML/XML document leak detector — only matches when a leaked document
+    # appears at the very start of the response (not embedded code snippets).
+    _HTML_LEAK_PATTERN = re.compile(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', re.IGNORECASE)
+
+    def __init__(self):
+        # Per-instance failure tracking. Defining these at class level would
+        # silently share state across instances (and across re-imports), which
+        # is not what we want.
+        self._deployment_failures: dict[str, int] = {}
+        self._deployment_last_failure: dict[str, float] = {}
+
     # ─────────────────────────────────────────────────────────────────────────
     # Lifecycle Hook 1: Pre-Call Request Interception
     # ─────────────────────────────────────────────────────────────────────────
     async def async_pre_call_hook(self, user_api_key_dict: dict, data: dict, call_type: str, *args, **kwargs):
         """
-        Pre-call hook to intercept virtual/entry model requests (FAST/SMART)
-        and map them to active model groups and fallback arrays dynamically.
-        This avoids hitting dummy deployments and triggering mock responses.
+        Pre-call hook to intercept virtual/entry model requests (FAST/SMART/...)
+        and map them to real model groups. This avoids hitting dummy deployments
+        defined in config.yaml.
 
         Using *args and **kwargs makes this signature fully compatible with
         varied versions of LiteLLM (which may pass 'cache' or 'cache_dict' keywords).
         """
         model = data.get("model")
-        if model == "FAST":
-            data["model"] = "google/gemma4"
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=FAST -> target=google/gemma4")
-        elif model == "SMART":
-            data["model"] = "nvidia/glm51"
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=nvidia/glm51")
-        elif model == "CODE":
-            data["model"] = "nvidia/glm51"
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=CODE -> target=nvidia/glm51")
-        elif model == "GOON":
-            data["model"] = "nvidia/glm51"
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=GOON -> target=nvidia/glm51")
+        target = self.VIRTUAL_MODEL_MAP.get(model)
+        if target:
+            data["model"] = target
+            log_to_file(f"[ROUTER_REWRITE] virtual_model={model} -> target={target}")
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # Helpers: response introspection
+    # ─────────────────────────────────────────────────────────────────────────
     def _get_response_preview(self, response_obj, max_chars: int = 200) -> str:
         """Safely parses content and reasoning sections to return a concise log preview."""
         try:
@@ -136,12 +152,8 @@ class UniversalGarbageHandler(CustomLogger):
         """
         litellm_params = kwargs.get("litellm_params", {})
         response_format = litellm_params.get("response_format") or kwargs.get("response_format", {})
-
         if isinstance(response_format, dict):
-            req_type = response_format.get("type", "")
-            if req_type in ["json_schema", "json_object"]:
-                return True
-
+            return response_format.get("type", "") in ("json_schema", "json_object")
         return False
 
     def _looks_like_garbage(self, response_obj, kwargs: dict) -> tuple[bool, str]:
@@ -158,7 +170,7 @@ class UniversalGarbageHandler(CustomLogger):
         combined_text = actual_content + " " + reasoning
 
         # Guard: Ignore dummy mock responses so they don't trigger unexpected errors
-        if kwargs.get("model") in ["FAST", "SMART"] or actual_content.strip() == "error":
+        if kwargs.get("model") in ("FAST", "SMART") or actual_content.strip() == "error":
             return False, ""
 
         # Streaming requests (SSE) deliver content via chunk events, not in the
@@ -171,17 +183,17 @@ class UniversalGarbageHandler(CustomLogger):
             return False, ""
 
         # Check 1: Refusal Matching
-        for pattern in self.REFUSAL_PATTERNS:
-            if re.search(pattern, combined_text, re.IGNORECASE):
-                return True, f"refusal_match:{pattern[:20]}..."
+        for compiled in self._COMPILED_REFUSAL:
+            if compiled.search(combined_text):
+                return True, f"refusal_match:{compiled.pattern[:20]}..."
 
         # Check 2: Loop/Garbage Pattern Matching
-        for pattern in self.GARBAGE_PATTERNS:
-            if re.search(pattern, combined_text, re.IGNORECASE):
-                return True, f"garbage_match:{pattern[:20]}..."
+        for compiled in self._COMPILED_GARBAGE:
+            if compiled.search(combined_text):
+                return True, f"garbage_match:{compiled.pattern[:20]}..."
 
         # Check 3: Web-Scraping / HTML Leaks
-        if re.match(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', combined_text, re.IGNORECASE):
+        if self._HTML_LEAK_PATTERN.match(combined_text):
             return True, "leaked_html_document"
 
         # Check 4: JSON Format Mismatch
@@ -203,6 +215,18 @@ class UniversalGarbageHandler(CustomLogger):
 
         return False, ""
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # Helpers: deployment identification
+    # ─────────────────────────────────────────────────────────────────────────
+    def _get_model_alias(self, kwargs) -> str:
+        """Returns the user-facing model alias (e.g. 'nvidia/glm51') instead of the provider model."""
+        return (
+            kwargs.get("litellm_params", {})
+            .get("metadata", {})
+            .get("model_group")
+            or kwargs.get("model", "unknown")
+        )
+
     def _get_deployment_id(self, kwargs) -> str:
         """Retrieves the unique, long-form identifier of the targeted model node."""
         litellm_params = kwargs.get("litellm_params") or {}
@@ -213,17 +237,20 @@ class UniversalGarbageHandler(CustomLogger):
         return ""
 
     def _is_retry_available(self, kwargs: dict) -> bool:
+        """True when the router still has a retry budget for this request."""
         if not kwargs:
             return False
         litellm_params = kwargs.get("litellm_params", {})
         metadata = litellm_params.get("metadata", {})
         attempt = metadata.get("attempt", 1)
         retry_count = litellm_params.get("retry_count", 0)
-        if attempt <= 1 and retry_count > 0:
-            return True
-        return False
+        return attempt <= 1 and retry_count > 0
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # Helpers: failure tracking + cooldown
+    # ─────────────────────────────────────────────────────────────────────────
     def _increment_failure(self, deployment_id: str, is_failure: bool):
+        """Tracks consecutive failures per deployment; resets on any success."""
         if is_failure:
             self._deployment_failures[deployment_id] = self._deployment_failures.get(deployment_id, 0) + 1
             self._deployment_last_failure[deployment_id] = time.monotonic()
@@ -232,21 +259,35 @@ class UniversalGarbageHandler(CustomLogger):
             self._deployment_last_failure.pop(deployment_id, None)
 
     def _should_mark_dead(self, deployment_id: str, reason: str, kwargs: dict) -> bool:
+        """
+        Decide whether a failure is severe enough to put the deployment on cooldown.
+
+        - Empty responses need CONSECUTIVE_FAILURE_THRESHOLD strikes (often transient).
+        - Anything else is marked dead immediately, unless a retry is still available.
+        """
         base_reason = reason.removeprefix("stream_")
 
         if base_reason == "response_is_empty":
+            # Reset counter if the last empty-response failure is older than the
+            # empty-response cooldown window — don't punish for stale history.
             last = self._deployment_last_failure.get(deployment_id, 0)
             if last and (time.monotonic() - last > self.EMPTY_RESPONSE_COOLDOWN_SECONDS):
                 self._deployment_failures.pop(deployment_id, None)
                 self._deployment_last_failure.pop(deployment_id, None)
             consecutive = self._deployment_failures.get(deployment_id, 0) + 1
             if consecutive < self.CONSECUTIVE_FAILURE_THRESHOLD:
-                log_to_file(f"[FAILURE_ACCUMULATING] deployment={deployment_id[:16]}... reason={reason} count={consecutive}/{self.CONSECUTIVE_FAILURE_THRESHOLD}")
+                log_to_file(
+                    f"[FAILURE_ACCUMULATING] deployment={deployment_id[:16]}... "
+                    f"reason={reason} count={consecutive}/{self.CONSECUTIVE_FAILURE_THRESHOLD}"
+                )
                 return False
             return True
 
         if self._is_retry_available(kwargs):
-            log_to_file(f"[RETRY_PENDING] deployment={deployment_id[:16]}... reason={reason} - skipping cooldown, retry may succeed")
+            log_to_file(
+                f"[RETRY_PENDING] deployment={deployment_id[:16]}... "
+                f"reason={reason} - skipping cooldown, retry may succeed"
+            )
             return False
 
         return True
@@ -293,6 +334,7 @@ class UniversalGarbageHandler(CustomLogger):
                     cooldown_time=float(cooldown),
                 )
             except TypeError:
+                # Older LiteLLM versions use `deployment_id=` instead of `model_id=`.
                 llm_router.cooldown_cache.add_deployment_to_cooldown(
                     deployment_id=deployment_id,
                     original_exception=fake_exception,
@@ -303,55 +345,36 @@ class UniversalGarbageHandler(CustomLogger):
             log_to_file(f"[ERROR] Failed to mark deployment dead: {e}")
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Lifecycle Hook 2: Logging and Output Auditing (Non-Streaming)
+    # Lifecycle Hooks 2 & 3: Logging and Output Auditing
+    # (Non-Streaming + Streaming Completions share the same audit pipeline)
     # ─────────────────────────────────────────────────────────────────────────
-    def _get_model_alias(self, kwargs) -> str:
-        """Returns the user-facing model alias (e.g. 'nvidia/glm51') instead of the provider model."""
-        return (
-            kwargs.get("litellm_params", {})
-            .get("metadata", {})
-            .get("model_group")
-            or kwargs.get("model", "unknown")
-        )
+    async def _audit_response(self, kwargs, response_obj, *, stream: bool):
+        """Shared audit pipeline used by both completion and streaming hooks."""
+        deployment_id = self._get_deployment_id(kwargs)
+        model_name = self._get_model_alias(kwargs)
+        preview = self._get_response_preview(response_obj)
+
+        tag = "STREAM_COMPLETE" if stream else "RESPONSE"
+        log_to_file(f"[{tag}] model={model_name} deploy={deployment_id[:12]} preview={preview!r}")
+
+        if not deployment_id:
+            return
+
+        is_garbage, reason = self._looks_like_garbage(response_obj, kwargs)
+        if is_garbage:
+            log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
+            prefixed_reason = f"stream_{reason}" if stream else reason
+            self._mark_deployment_dead(deployment_id, prefixed_reason, kwargs)
+        else:
+            self._increment_failure(deployment_id, False)
 
     async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
         """Triggered upon any successful standard chat completion."""
-        deployment_id = self._get_deployment_id(kwargs)
-        model_name = self._get_model_alias(kwargs)
-        preview = self._get_response_preview(response_obj)
+        await self._audit_response(kwargs, response_obj, stream=False)
 
-        log_to_file(f"[RESPONSE] model={model_name} deploy={deployment_id[:12]} preview={preview!r}")
-
-        if not deployment_id:
-            return
-
-        is_garbage, reason = self._looks_like_garbage(response_obj, kwargs)
-        if is_garbage:
-            log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
-            self._mark_deployment_dead(deployment_id, reason, kwargs)
-        else:
-            self._increment_failure(deployment_id, False)
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Lifecycle Hook 3: Logging and Output Auditing (Streaming Completions)
-    # ─────────────────────────────────────────────────────────────────────────
     async def async_log_stream_complete_event(self, kwargs, response_obj, start_time, end_time):
         """Triggered after an entire stream of tokens has completed."""
-        deployment_id = self._get_deployment_id(kwargs)
-        model_name = self._get_model_alias(kwargs)
-        preview = self._get_response_preview(response_obj)
-
-        log_to_file(f"[STREAM_COMPLETE] model={model_name} deploy={deployment_id[:12]} preview={preview!r}")
-
-        if not deployment_id:
-            return
-
-        is_garbage, reason = self._looks_like_garbage(response_obj, kwargs)
-        if is_garbage:
-            log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
-            self._mark_deployment_dead(deployment_id, f"stream_{reason}", kwargs)
-        else:
-            self._increment_failure(deployment_id, False)
+        await self._audit_response(kwargs, response_obj, stream=True)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Lifecycle Hook 4: Logging Natural Failures (e.g., Timeout, 429 Rate Limit)
@@ -365,7 +388,11 @@ class UniversalGarbageHandler(CustomLogger):
         exception_type = type(exception).__name__ if exception else "Unknown"
         exception_msg = str(exception)[:200] if exception else "no details"
 
-        log_to_file(f"[PROVIDER_FAILURE] model={model_name} deploy={deployment_id[:12]} error={exception_type}: {exception_msg!r}")
+        log_to_file(
+            f"[PROVIDER_FAILURE] model={model_name} deploy={deployment_id[:12]} "
+            f"error={exception_type}: {exception_msg!r}"
+        )
+
 
 # Instantiate class to automatically register callback within LiteLLM
 custom_handler = UniversalGarbageHandler()
