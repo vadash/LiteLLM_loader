@@ -161,6 +161,15 @@ class UniversalGarbageHandler(CustomLogger):
         if kwargs.get("model") in ["FAST", "SMART"] or actual_content.strip() == "error":
             return False, ""
 
+        # Streaming requests (SSE) deliver content via chunk events, not in the
+        # final response_obj wrapper that this hook inspects. The wrapper often
+        # reports empty content even though the client received a full stream.
+        # Audit those via async_log_stream_complete_event instead.
+        litellm_params = kwargs.get("litellm_params", {}) or {}
+        is_streaming = bool(litellm_params.get("stream") or kwargs.get("stream"))
+        if is_streaming:
+            return False, ""
+
         # Check 1: Refusal Matching
         for pattern in self.REFUSAL_PATTERNS:
             if re.search(pattern, combined_text, re.IGNORECASE):
