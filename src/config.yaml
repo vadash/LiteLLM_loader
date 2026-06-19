@@ -169,7 +169,6 @@ model_list:
     rpm: 5 # to spread the load
 
 # --- LongCat Pool ---
-
 - model_name: longcat/longcat
   litellm_params:
     model: openai/LongCat-2.0-Preview
@@ -212,7 +211,7 @@ model_list:
     supported_openai_params: [ "thinking", "clear_thinking" ]
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
-# --- Bluesminds ---
+# --- Bluesminds GLM 51 Pool ---
 - model_name: bm/glm51
   litellm_params:
     model: openai/z-ai/glm-5.1
@@ -235,6 +234,7 @@ model_list:
     supported_openai_params: [ "thinking", "clear_thinking" ]
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
+# --- Bluesminds KIMI K26 Pool ---
 - model_name: bm/kimik26
   litellm_params:
     model: openai/moonshotai/kimi-k2.6
