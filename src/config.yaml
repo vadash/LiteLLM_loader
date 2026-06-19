@@ -197,6 +197,29 @@ model_list:
     supported_openai_params: [ "thinking", "clear_thinking" ]
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
+# --- Bluesminds ---
+- model_name: bm-glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/BM_PROXY_BASE1
+    api_key: os.environ/BM_API_KEY1
+    rpm: 60
+    supports_reasoning: true # Tells LiteLLM to preserve reasoning/thinking tokens
+    # Tell the parser to permit these reasoning controls to reach the model
+    supported_openai_params: [ "thinking", "clear_thinking" ]
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
+
+- model_name: bm-kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/BM_PROXY_BASE1
+    api_key: os.environ/BM_API_KEY1
+    rpm: 60
+    supports_reasoning: true # Tells LiteLLM to preserve reasoning/thinking tokens
+    # Tell the parser to permit these reasoning controls to reach the model
+    supported_openai_params: [ "thinking", "clear_thinking" ]
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
+
 # ────────────────────────────────────────────────────────────────────────────
 # Router Settings
 # ────────────────────────────────────────────────────────────────────────────
