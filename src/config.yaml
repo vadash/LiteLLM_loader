@@ -305,7 +305,7 @@ router_settings:
   - bm/kimik26: [ "bm/glm51", "nvidia/kimik26", "longcat/longcat" ]
 
   timeout: 180 # Timeout calls to a provider after 180 seconds
-  num_retries: 0 # Retries: 0 ensures immediate fallback on error instead of retrying a dead node
+  num_retries: 1 # Allow 1 retry to wait out brief rate limits before falling back
   enable_pre_call_checks: false # Set to false to avoid making ping calls prior to every request (saves latency)
   allowed_fails: 1 # Put a deployment on cooldown after 1 failed/garbage response
   cooldown_time: 600 # Keep failing providers dead for 10 minutes (600s)
