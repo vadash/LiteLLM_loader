@@ -95,15 +95,21 @@ class UniversalGarbageHandler(CustomLogger):
         """
         model = data.get("model")
         if model == "FAST":
-            # Change the destination model name
             data["model"] = "google/gemma4"
-            # Explicitly define fallback models for this specific request
-            data["fallbacks"] = ["longcat/longcat", "nvidia/kimik26", "zai/glm47", "zai/glm51"]
+            data["fallbacks"] = ["longcat/longcat", "nvidia/kimik26", "nvidia/glm51", "zai/glm47"]
             log_to_file(f"[ROUTER_REWRITE] virtual_model=FAST -> target=google/gemma4 fallbacks={data['fallbacks']}")
         elif model == "SMART":
-            data["model"] = "nvidia/kimik26"
-            data["fallbacks"] = ["longcat/longcat", "zai/glm52", "zai/glm51", "zai/glm47", "google/gemma4"]
-            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=nvidia/kimik26 fallbacks={data['fallbacks']}")
+            data["model"] = "nvidia/glm51"
+            data["fallbacks"] = ["bm/glm51", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat"]
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=SMART -> target=nvidia/glm51 fallbacks={data['fallbacks']}")
+        elif model == "CODE":
+            data["model"] = "nvidia/glm51"
+            data["fallbacks"] = ["bm/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat", "zai/glm47"]
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=CODE -> target=nvidia/glm51 fallbacks={data['fallbacks']}")
+        elif model == "GOON":
+            data["model"] = "nvidia/glm51"
+            data["fallbacks"] = ["nvidia/kimik26", "longcat/longcat", "google/gemma4"]
+            log_to_file(f"[ROUTER_REWRITE] virtual_model=GOON -> target=nvidia/glm51 fallbacks={data['fallbacks']}")
 
     def _get_response_preview(self, response_obj, max_chars: int = 200) -> str:
         """Safely parses content and reasoning sections to return a concise log preview."""

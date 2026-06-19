@@ -43,31 +43,21 @@ All scripts are thin wrappers around `litellm_ctl.py` which tracks the process v
 
 ## Architecture
 
-### Latency-Based Fallback Routing (`src/config.yaml`)
+### Routing Architecture (`src/config.yaml`, `src/handler.py`)
 
-Models are organized into **user-facing groups** (`FAST`, `SMART`) and **reusable fallback groups** (`nvidia/glm51`, `nvidia/kimik26`, `google/gemma4`, `longcat/longcat`, `zai/glm47`, `zai/glm51`, `zai/glm52`, `bm/glm51`, `bm/kimik26`).
+**Two model types:**
 
-All model names follow `PROVIDERCODE_MODELNAME` convention (e.g., `nvidia/kimik26`, `zai/glm51`, `google/gemma4`).
+1. **Virtual entry points** (aliases) — `FAST`, `SMART`, `CODE`, `GOON`. Defined in config with dummy values, rewritten by `handler.py`'s `async_pre_call_hook` to real model + fallback chain per request. Each serves a use case:
+   - `FAST` — high-volume, no limits, fastest available
+   - `SMART` — planning/orchestration, prefers reasoning models
+   - `CODE` — implementation tasks, code-optimized models
+   - `GOON` — no-censor mode
 
-The router uses **latency-based routing** with `lowest_latency_buffer: 0.3` to pick the fastest deployment within each group.
+2. **Provider model groups** — named `PROVIDERCODE_MODELNAME` (e.g., `nvidia/glm51`, `zai/glm52`, `google/gemma4`). Multiple entries with the same name form a load-balanced pool.
 
-**User-facing groups:**
-- `FAST` — prioritizes google/gemma4, then Kimi via NVIDIA
-- `SMART` — prioritizes z.ai GLM models
+**Routing:** Latency-based with `lowest_latency_buffer: 0.3`. Fallbacks are **flat** (not recursive) — when a group fails, the router iterates that group's list directly. Every group must have a fallback entry (even `[]`) to avoid crash loops.
 
-**Fallback chain** (primary → last resort):
-```
-FAST → google/gemma4 → longcat/longcat → nvidia/kimik26 → zai/glm47 → zai/glm51
-SMART → nvidia/kimik26 → longcat/longcat → zai/glm52 → zai/glm51 → zai/glm47 → google/gemma4
-```
-
-**Content policy fallbacks** (triggered by `ContentPolicyViolationError`):
-```
-FAST → google/gemma4 → longcat/longcat → nvidia/kimik26 → zai/glm47 → zai/glm51
-SMART → nvidia/kimik26 → longcat/longcat → zai/glm52 → zai/glm51 → zai/glm47 → google/gemma4
-```
-
-**Fallback resolution is FLAT (not recursive):** When a group fails, the router iterates that group's list directly without consulting each model's own fallback entry. Every group must still have an empty fallback entry (`[]`) to avoid crash loops.
+**Content policy fallbacks** are triggered separately when a provider rejects a prompt due to moderation.
 
 ### Empty Response Handler (`src/handler.py`)
 

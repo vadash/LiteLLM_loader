@@ -36,6 +36,20 @@ model_list:
     mock_response: "error"
     drop_params: true
 
+- model_name: CODE
+  litellm_params:
+    model: openai/gpt-3.5-turbo
+    api_key: "x"
+    mock_response: "error"
+    drop_params: true
+
+- model_name: GOON
+  litellm_params:
+    model: openai/gpt-3.5-turbo
+    api_key: "x"
+    mock_response: "error"
+    drop_params: true
+
 # ────────────────────────────────────────────────────────────────────────────
 # 2. Reusable Fallback & Load-Balancing Groups
 # ────────────────────────────────────────────────────────────────────────────
@@ -239,8 +253,10 @@ router_settings:
   # LiteLLM processes fallback chains in a flat manner. It does not recurse.
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
-  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "zai/glm47", "zai/glm51" ]
-  - SMART: [ "nvidia/kimik26", "longcat/longcat", "zai/glm52", "zai/glm51", "zai/glm47", "google/gemma4" ]
+  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "nvidia/glm51", "zai/glm47" ]
+  - SMART: [ "nvidia/glm51", "bm/glm51", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat" ]
+  - CODE: [ "nvidia/glm51", "bm/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat", "zai/glm47" ]
+  - GOON: [ "nvidia/glm51", "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
   - nvidia/glm51: []
   - nvidia/kimik26: []
   - google/gemma4: []
@@ -248,10 +264,14 @@ router_settings:
   - zai/glm52: [ "zai/glm51" ]
   - zai/glm51: [ "zai/glm47" ]
   - zai/glm47: [ "zai/glm51" ]
+  - bm/glm51: []
+  - bm/kimik26: []
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
-  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "zai/glm47", "zai/glm51" ]
-  - SMART: [ "nvidia/kimik26", "longcat/longcat", "zai/glm52", "zai/glm51", "zai/glm47", "google/gemma4" ]
+  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "nvidia/glm51", "zai/glm47" ]
+  - SMART: [ "nvidia/glm51", "bm/glm51", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat" ]
+  - CODE: [ "nvidia/glm51", "bm/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat", "zai/glm47" ]
+  - GOON: [ "nvidia/glm51", "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
 
   timeout: 180 # Timeout calls to a provider after 180 seconds
   num_retries: 0 # Retries: 0 ensures immediate fallback on error instead of retrying a dead node
