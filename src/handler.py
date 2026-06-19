@@ -3,12 +3,13 @@ from litellm.integrations.custom_logger import CustomLogger
 import re
 import pathlib
 import logging
+import time
 from datetime import datetime
 
 # =========================================================================
 # SILENCE NOISY LITELLM TRACEBACKS IN THE CONSOLE
 # =========================================================================
-# By default, LiteLLM prints full traceback logs every time a request fails 
+# By default, LiteLLM prints full traceback logs every time a request fails
 # and switches to a fallback. Under heavy load, this can clutter stdout.
 # This filter suppresses redundant warnings during normal fallback operations.
 # =========================================================================
@@ -56,7 +57,7 @@ class UniversalGarbageHandler(CustomLogger):
     CONSECUTIVE_FAILURE_THRESHOLD = 3
 
     _deployment_failures: dict[str, int] = {}
-    _deployment_last_failure: dict[str, float] = {}  
+    _deployment_last_failure: dict[str, float] = {}
 
     # regular expressions to identify common system alignment/moderation refusals
     REFUSAL_PATTERNS = [
@@ -66,14 +67,14 @@ class UniversalGarbageHandler(CustomLogger):
         r"violate(?:s)? (?:safety|OpenAI|Anthropic|guidelines|policies)",
         r"I can(?:not|'t) (?:generate|create|provide|write) (?:content|text|responses|stories|JSON) that (?:is|depicts|involves|contains?)",
         r"I(?:'m| am) sorry, (?:but )?I can(?:not|'t) (?:assist|help) with that",
-        
+
         # Russian Refusal Patterns
         r"Я не могу (?:выполнить|обработать) (?:этот )?запрос",
         r"противоречит (?:моим )?(?:правилам|политике|этическим)",
         r"нарушает (?:правила|политику|принципы) (?:безопасности|OpenAI|Anthropic)",
         r"Я не могу (?:создавать|генерировать|предоставлять) контент, который",
         r"Извините, но я не могу (?:помочь|выполнить|сгенерировать|предоставить)",
-        
+
         # Chinese Refusal Patterns
         r"作为一个(?:人工智能|AI|语言模型)",
         r"抱歉，我无法(?:满足|处理)(?:您|你)的请求",
@@ -93,8 +94,8 @@ class UniversalGarbageHandler(CustomLogger):
         Pre-call hook to intercept virtual/entry model requests (FAST/SMART)
         and map them to active model groups and fallback arrays dynamically.
         This avoids hitting dummy deployments and triggering mock responses.
-        
-        Using *args and **kwargs makes this signature fully compatible with 
+
+        Using *args and **kwargs makes this signature fully compatible with
         varied versions of LiteLLM (which may pass 'cache' or 'cache_dict' keywords).
         """
         model = data.get("model")
@@ -145,12 +146,12 @@ class UniversalGarbageHandler(CustomLogger):
 
     def _looks_like_garbage(self, response_obj, kwargs: dict) -> tuple[bool, str]:
         """
-        Inspects model responses. 
+        Inspects model responses.
         Returns (True, reason) if output is detected as garbage/refusal.
         """
         if not hasattr(response_obj, "choices") or not response_obj.choices:
             return True, "no_choices_in_response"
-            
+
         message = response_obj.choices[0].message
         actual_content = getattr(message, "content", None) or ""
         reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
@@ -173,7 +174,7 @@ class UniversalGarbageHandler(CustomLogger):
         # Check 3: Web-Scraping / HTML Leaks
         if re.match(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', combined_text, re.IGNORECASE):
             return True, "leaked_html_document"
-            
+
         # Check 4: JSON Format Mismatch
         # When the client requests JSON but the model returns prose/empty,
         # log the mismatch but do NOT mark the deployment as dead.
@@ -190,8 +191,9 @@ class UniversalGarbageHandler(CustomLogger):
                 if reasoning.strip():
                     return False, ""
                 return True, "response_is_empty"
-                
+
         return False, ""
+
     def _get_deployment_id(self, kwargs) -> str:
         """Retrieves the unique, long-form identifier of the targeted model node."""
         litellm_params = kwargs.get("litellm_params") or {}
@@ -202,18 +204,17 @@ class UniversalGarbageHandler(CustomLogger):
         return ""
 
     def _is_retry_available(self, kwargs: dict) -> bool:
+        if not kwargs:
+            return False
         litellm_params = kwargs.get("litellm_params", {})
         metadata = litellm_params.get("metadata", {})
         attempt = metadata.get("attempt", 1)
         retry_count = litellm_params.get("retry_count", 0)
         if attempt <= 1 and retry_count > 0:
             return True
-        if attempt > 1:
-            return False
         return False
 
     def _increment_failure(self, deployment_id: str, is_failure: bool):
-        import time
         if is_failure:
             self._deployment_failures[deployment_id] = self._deployment_failures.get(deployment_id, 0) + 1
             self._deployment_last_failure[deployment_id] = time.monotonic()
@@ -221,19 +222,15 @@ class UniversalGarbageHandler(CustomLogger):
             self._deployment_failures.pop(deployment_id, None)
             self._deployment_last_failure.pop(deployment_id, None)
 
-    def _should_mark_dead(self, deployment_id: str, reason: str) -> bool:
-        import time
-
-        if self._is_retry_available_kwargs={}):
-            log_to_file(f"[RETRY_PENDING] deployment={deployment_id[:16]}... reason={reason} — skipping cooldown, retry may succeed")
+    def _should_mark_dead(self, deployment_id: str, reason: str, kwargs: dict) -> bool:
+        if self._is_retry_available(kwargs):
+            log_to_file(f"[RETRY_PENDING] deployment={deployment_id[:16]}... reason={reason} - skipping cooldown, retry may succeed")
             return False
 
         if reason == "response_is_empty":
             threshold = max(self.CONSECUTIVE_FAILURE_THRESHOLD, 3)
-            cooldown = self.EMPTY_RESPONSE_COOLDOWN_SECONDS
         else:
             threshold = 1
-            cooldown = self.COOLDOWN_SECONDS
 
         consecutive = self._deployment_failures.get(deployment_id, 0)
 
@@ -249,13 +246,13 @@ class UniversalGarbageHandler(CustomLogger):
 
         return True
 
-    def _mark_deployment_dead(self, deployment_id: str, reason: str):
+    def _mark_deployment_dead(self, deployment_id: str, reason: str, kwargs: dict):
         """
         Manually triggers a failover on a model node by flagging it in the
         active cooldown cache. The node remains inactive for COOLDOWN_SECONDS
         (or a shorter duration for empty responses).
         """
-        if not self._should_mark_dead(deployment_id, reason):
+        if not self._should_mark_dead(deployment_id, reason, kwargs):
             self._increment_failure(deployment_id, True)
             return
 
@@ -325,7 +322,7 @@ class UniversalGarbageHandler(CustomLogger):
         is_garbage, reason = self._looks_like_garbage(response_obj, kwargs)
         if is_garbage:
             log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
-            self._mark_deployment_dead(deployment_id, reason)
+            self._mark_deployment_dead(deployment_id, reason, kwargs)
         else:
             self._increment_failure(deployment_id, False)
 
@@ -346,7 +343,7 @@ class UniversalGarbageHandler(CustomLogger):
         is_garbage, reason = self._looks_like_garbage(response_obj, kwargs)
         if is_garbage:
             log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
-            self._mark_deployment_dead(deployment_id, f"stream_{reason}")
+            self._mark_deployment_dead(deployment_id, f"stream_{reason}", kwargs)
         else:
             self._increment_failure(deployment_id, False)
 
