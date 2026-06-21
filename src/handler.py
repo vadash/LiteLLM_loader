@@ -89,7 +89,10 @@ class UniversalGarbageHandler(CustomLogger):
     ]
 
     # Add loop detection / gibberish detection signatures here as needed
-    GARBAGE_PATTERNS = []
+    GARBAGE_PATTERNS = [
+        r"Deferred tools? list",
+        r"ToolSearch tools? not shown",
+    ]
 
     # Pre-compiled regexes. Compiling once at class load avoids re-parsing the
     # patterns on every response check, which matters under heavy load.
@@ -392,6 +395,50 @@ class UniversalGarbageHandler(CustomLogger):
             f"[PROVIDER_FAILURE] model={model_name} deploy={deployment_id[:12]} "
             f"error={exception_type}: {exception_msg!r}"
         )
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Lifecycle Hook 5: Post-Call Guard (runs BEFORE response reaches client)
+    # ─────────────────────────────────────────────────────────────────────────
+    async def async_post_call_success_deployment_hook(
+        self, data, response_obj, call_type
+    ):
+        """
+        Inspects the response after the upstream call completes but BEFORE it
+        is returned to the client. If the response contains garbage fragments
+        that the client will misinterpret as tool calls (e.g. "Deferred tools
+        list", "ToolSearch"), mark the deployment dead and raise so the proxy's
+        retry/fallback chain kicks in — the client never sees the garbage.
+        """
+        if not hasattr(response_obj, "choices") or not response_obj.choices:
+            return response_obj
+
+        message = response_obj.choices[0].message
+        actual_content = getattr(message, "content", None) or ""
+        reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
+        combined = actual_content + " " + reasoning
+
+        for compiled in self._COMPILED_GARBAGE:
+            if compiled.search(combined):
+                model_name = (
+                    data.get("litellm_params", {})
+                    .get("metadata", {})
+                    .get("model_group")
+                    or data.get("model", "unknown")
+                )
+                log_to_file(
+                    f"[POST_CALL_GARBAGE_BLOCKED] model={model_name} "
+                    f"pattern={compiled.pattern!r}"
+                )
+                deployment_id = self._get_deployment_id(data)
+                if deployment_id:
+                    self._mark_deployment_dead(deployment_id, f"garbage:{compiled.pattern[:20]}", data)
+                raise litellm.BadRequestError(
+                    message=f"Garbage response blocked by proxy: {compiled.pattern[:30]}",
+                    model=model_name,
+                    llm_provider="",
+                )
+
+        return response_obj
 
 
 # Instantiate class to automatically register callback within LiteLLM
