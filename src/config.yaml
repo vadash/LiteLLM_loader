@@ -98,6 +98,86 @@ model_list:
     drop_params: true
     rpm: 2 # to spread the load
 
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_6
+    api_key: os.environ/NVIDIA_API_KEY_6
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_7
+    api_key: os.environ/NVIDIA_API_KEY_7
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_8
+    api_key: os.environ/NVIDIA_API_KEY_8
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_9
+    api_key: os.environ/NVIDIA_API_KEY_9
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_10
+    api_key: os.environ/NVIDIA_API_KEY_10
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_11
+    api_key: os.environ/NVIDIA_API_KEY_11
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_12
+    api_key: os.environ/NVIDIA_API_KEY_12
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_13
+    api_key: os.environ/NVIDIA_API_KEY_13
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_14
+    api_key: os.environ/NVIDIA_API_KEY_14
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/glm51
+  litellm_params:
+    model: openai/z-ai/glm-5.1
+    api_base: os.environ/NVIDIA_PROXY_BASE_15
+    api_key: os.environ/NVIDIA_API_KEY_15
+    drop_params: true
+    rpm: 2 # to spread the load
+
 # --- NVIDIA Kimi-K2.6 Pool ---
 - model_name: nvidia/kimik26
   litellm_params:
@@ -136,6 +216,86 @@ model_list:
     model: openai/moonshotai/kimi-k2.6
     api_base: os.environ/NVIDIA_PROXY_BASE_5
     api_key: os.environ/NVIDIA_API_KEY_5
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_6
+    api_key: os.environ/NVIDIA_API_KEY_6
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_7
+    api_key: os.environ/NVIDIA_API_KEY_7
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_8
+    api_key: os.environ/NVIDIA_API_KEY_8
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_9
+    api_key: os.environ/NVIDIA_API_KEY_9
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_10
+    api_key: os.environ/NVIDIA_API_KEY_10
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_11
+    api_key: os.environ/NVIDIA_API_KEY_11
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_12
+    api_key: os.environ/NVIDIA_API_KEY_12
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_13
+    api_key: os.environ/NVIDIA_API_KEY_13
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_14
+    api_key: os.environ/NVIDIA_API_KEY_14
+    drop_params: true
+    rpm: 2 # to spread the load
+
+- model_name: nvidia/kimik26
+  litellm_params:
+    model: openai/moonshotai/kimi-k2.6
+    api_base: os.environ/NVIDIA_PROXY_BASE_15
+    api_key: os.environ/NVIDIA_API_KEY_15
     drop_params: true
     rpm: 2 # to spread the load
 
