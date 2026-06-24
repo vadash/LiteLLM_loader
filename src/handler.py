@@ -103,6 +103,14 @@ class UniversalGarbageHandler(CustomLogger):
     # appears at the very start of the response (not embedded code snippets).
     _HTML_LEAK_PATTERN = re.compile(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', re.IGNORECASE)
 
+    # CJK Unified Ideographs (common Chinese/Japanese/Korean characters).
+    # Covers the main block plus extensions A and B for thorough detection.
+    _CJK_PATTERN = re.compile(
+        r'[㐀-䶿一-鿿豈-﫿'
+        r'\U00020000-\U0002A6DF\U0002A700-\U0002B73F]'
+    )
+    CJK_REJECT_THRESHOLD = 10
+
     def __init__(self):
         # Per-instance failure tracking. Defining these at class level would
         # silently share state across instances (and across re-imports), which
@@ -198,6 +206,12 @@ class UniversalGarbageHandler(CustomLogger):
         # Check 3: Web-Scraping / HTML Leaks
         if self._HTML_LEAK_PATTERN.match(combined_text):
             return True, "leaked_html_document"
+
+        # Check 3b: Excessive CJK characters — model responding in Chinese
+        # when it shouldn't be (typically alignment/policy refusals on CN models).
+        cjk_count = len(self._CJK_PATTERN.findall(combined_text))
+        if cjk_count > self.CJK_REJECT_THRESHOLD:
+            return True, f"excess_cjk:{cjk_count}"
 
         # Check 4: JSON Format Mismatch
         # When the client requests JSON but the model returns prose/empty,
@@ -437,6 +451,27 @@ class UniversalGarbageHandler(CustomLogger):
                     model=model_name,
                     llm_provider="",
                 )
+
+        cjk_count = len(self._CJK_PATTERN.findall(combined))
+        if cjk_count > self.CJK_REJECT_THRESHOLD:
+            model_name = (
+                data.get("litellm_params", {})
+                .get("metadata", {})
+                .get("model_group")
+                or data.get("model", "unknown")
+            )
+            log_to_file(
+                f"[POST_CALL_GARBAGE_BLOCKED] model={model_name} "
+                f"reason=excess_cjk count={cjk_count}"
+            )
+            deployment_id = self._get_deployment_id(data)
+            if deployment_id:
+                self._mark_deployment_dead(deployment_id, f"excess_cjk:{cjk_count}", data)
+            raise litellm.BadRequestError(
+                message=f"Garbage response blocked by proxy: excess CJK ({cjk_count})",
+                model=model_name,
+                llm_provider="",
+            )
 
         return response_obj
 
