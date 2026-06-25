@@ -151,6 +151,13 @@ def start():
     env = os.environ.copy()
     env.update(load_env())
     env.setdefault("PYTHONIOENCODING", "utf-8")
+    # httpx respects lowercase proxy vars on Windows; copy from uppercase if set
+    if "HTTP_PROXY" in env and "http_proxy" not in env:
+        env["http_proxy"] = env["HTTP_PROXY"]
+    if "HTTPS_PROXY" in env and "https_proxy" not in env:
+        env["https_proxy"] = env["HTTPS_PROXY"]
+    if "NO_PROXY" in env and "no_proxy" not in env:
+        env["no_proxy"] = env["NO_PROXY"]
 
     # Prepare log file
     log_handle = open(LOG_FILE, "w", encoding="utf-8")
