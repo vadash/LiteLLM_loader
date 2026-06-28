@@ -190,6 +190,13 @@ class UniversalGarbageHandler(CustomLogger):
         # Audit those via async_log_stream_complete_event instead.
         litellm_params = kwargs.get("litellm_params", {}) or {}
         is_streaming = bool(litellm_params.get("stream") or kwargs.get("stream"))
+        # DIAGNOSTIC: log what we see so we can verify CJK detection path
+        cjk_diag = len(self._CJK_PATTERN.findall(combined_text))
+        log_to_file(
+            f"[DIAG] is_streaming={is_streaming} content_len={len(actual_content)} "
+            f"reasoning_len={len(reasoning)} cjk_count={cjk_diag} "
+            f"stream_kwarg={kwargs.get('stream')} lp_stream={litellm_params.get('stream')}"
+        )
         if is_streaming:
             return False, ""
 
