@@ -59,9 +59,9 @@ class UniversalGarbageHandler(CustomLogger):
     # async_pre_call_hook so the dummy config entries never actually fire.
     VIRTUAL_MODEL_MAP = {
         "FAST": "google/gemma4",
-        "SMART": "nvidia/glm51",
-        "CODE": "nvidia/glm51",
-        "GOON": "nvidia/glm51",
+        "SMART": "nvidia/glm52",
+        "CODE": "nvidia/glm52",
+        "GOON": "nvidia/glm52",
     }
 
     # Regular expressions to identify common system alignment/moderation refusals.
@@ -243,7 +243,7 @@ class UniversalGarbageHandler(CustomLogger):
     # Helpers: deployment identification
     # ─────────────────────────────────────────────────────────────────────────
     def _get_model_alias(self, kwargs) -> str:
-        """Returns the user-facing model alias (e.g. 'nvidia/glm51') instead of the provider model."""
+        """Returns the user-facing model alias (e.g. 'nvidia/glm52') instead of the provider model."""
         return (
             kwargs.get("litellm_params", {})
             .get("metadata", {})
