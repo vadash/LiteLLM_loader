@@ -4,6 +4,7 @@ import pathlib
 import logging
 import re
 import time
+from typing import Optional
 from datetime import datetime
 
 # =========================================================================
@@ -64,6 +65,12 @@ class UniversalGarbageHandler(CustomLogger):
         "GOON": "nvidia/glm52",
     }
 
+    # Client UIs sometimes send generation knobs from non-OpenAI APIs. These
+    # break the OpenAI-compatible gateways in this config when forwarded.
+    REQUEST_PARAMS_TO_DROP = frozenset({"do_sample"})
+    INTEGER_REQUEST_PARAMS = ("max_tokens", "max_completion_tokens")
+    EXTRA_BODY_KEYS = ("extra_body",)
+
     # Regular expressions to identify common system alignment/moderation refusals.
     REFUSAL_PATTERNS = [
         # English Refusal Patterns
@@ -121,7 +128,15 @@ class UniversalGarbageHandler(CustomLogger):
     # ─────────────────────────────────────────────────────────────────────────
     # Lifecycle Hook 1: Pre-Call Request Interception
     # ─────────────────────────────────────────────────────────────────────────
-    async def async_pre_call_hook(self, user_api_key_dict: dict, data: dict, call_type: str, *args, **kwargs):
+    async def async_pre_call_hook(
+        self,
+        user_api_key_dict: dict,
+        cache,
+        data: dict,
+        call_type: str,
+        *args,
+        **kwargs,
+    ):
         """
         Pre-call hook to intercept virtual/entry model requests (FAST/SMART/...)
         and map them to real model groups. This avoids hitting dummy deployments
@@ -135,6 +150,93 @@ class UniversalGarbageHandler(CustomLogger):
         if target:
             data["model"] = target
             log_to_file(f"[ROUTER_REWRITE] virtual_model={model} -> target={target}")
+
+        self._sanitize_request_params(data)
+        return data
+
+    async def async_pre_call_deployment_hook(
+        self, kwargs: dict, call_type: Optional[object]
+    ) -> Optional[dict]:
+        """
+        Runs after LiteLLM selects a concrete deployment and before it builds the
+        provider request. This catches params added or preserved after proxy pre-call.
+        """
+        self._sanitize_request_params(kwargs)
+        return kwargs
+
+    def _sanitize_request_params(self, data: dict):
+        """Remove or normalize client params known to break provider JSON parsing."""
+        removed: list[str] = []
+        normalized: list[str] = []
+
+        containers: list[tuple[str, dict]] = [("", data)]
+        for container_key in self.EXTRA_BODY_KEYS:
+            container = data.get(container_key)
+            if isinstance(container, dict):
+                containers.append((f"{container_key}.", container))
+            elif container is not None:
+                data.pop(container_key, None)
+                removed.append(container_key)
+
+        for prefix, params in containers:
+            for param in self.REQUEST_PARAMS_TO_DROP:
+                if param in params:
+                    params.pop(param, None)
+                    removed.append(f"{prefix}{param}")
+
+            for param in self.INTEGER_REQUEST_PARAMS:
+                self._normalize_positive_int_param(
+                    params=params,
+                    param=param,
+                    prefix=prefix,
+                    removed=removed,
+                    normalized=normalized,
+                )
+
+        if removed or normalized:
+            details = []
+            if removed:
+                details.append(f"removed={sorted(set(removed))}")
+            if normalized:
+                details.append(f"normalized={sorted(set(normalized))}")
+            log_to_file(
+                f"[REQUEST_SANITIZED] model={data.get('model', 'unknown')} "
+                + " ".join(details)
+            )
+
+    def _normalize_positive_int_param(
+        self,
+        params: dict,
+        param: str,
+        prefix: str,
+        removed: list[str],
+        normalized: list[str],
+    ):
+        if param not in params:
+            return
+
+        value = params.get(param)
+        clean_value = None
+
+        if isinstance(value, bool) or value is None:
+            pass
+        elif isinstance(value, int):
+            clean_value = value
+        elif isinstance(value, float) and value.is_integer():
+            clean_value = int(value)
+        elif isinstance(value, str):
+            stripped = value.strip()
+            if stripped.isdecimal():
+                clean_value = int(stripped)
+
+        if clean_value is None or clean_value <= 0:
+            params.pop(param, None)
+            removed.append(f"{prefix}{param}")
+            return
+
+        if clean_value != value:
+            params[param] = clean_value
+            normalized.append(f"{prefix}{param}")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Helpers: response introspection

@@ -450,6 +450,9 @@ router_settings:
     lowest_latency_buffer: 0.3 # If models are within 0.3s of each other, randomly load-balance
 
   default_litellm_params:
+    # Keep common client-side sampling knobs that OpenAI-compatible backends reject
+    # out of every provider request. Per-deployment lists below are a subset of this.
+    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
     extra_headers:
       # Some public APIs block standard python-requests headers. We mock a browser UA to prevent blocks.
       User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
@@ -464,14 +467,14 @@ router_settings:
   - GOON: [ "nvidia/glm52", "nvidia/kimik26", "longcat", "google/gemma4" ]
   - nvidia/glm52: [ "nvidia/kimik26", "longcat", "google/gemma4" ]
   - nvidia/kimik26: [ "longcat", "google/gemma4", "nvidia/glm52" ]
-  - google/gemma4: [ "longcat", "nvidia/kimik26", "nvidia/glm52", [] ]
-  - longcat: [ "google/gemma4", "nvidia/kimik26", "nvidia/glm52", [] ]
+  - google/gemma4: [ "longcat", "nvidia/kimik26", "nvidia/glm52" ]
+  - longcat: [ "google/gemma4", "nvidia/kimik26", "nvidia/glm52" ]
   - zai/glm52: [ "zai/glm51", "zai/glm47", "nvidia/glm52", "longcat" ]
   - zai/glm51: [ "zai/glm47", "zai/glm52", "nvidia/glm52", "longcat" ]
   - zai/glm47: [ "zai/glm51", "zai/glm52", "nvidia/glm52", "longcat" ]
-  - bm/glm51: [ "bm/ds40flash", "bm/glm47", "nvidia/glm52", "longcat", [] ]
-  - bm/ds40flash: [ "bm/glm51", "nvidia/kimik26", "longcat", [] ]
-  - bm/glm47: [ "bm/ds40flash", "bm/glm51", "nvidia/glm52", "longcat", [] ]
+  - bm/glm51: [ "bm/ds40flash", "bm/glm47", "nvidia/glm52", "longcat" ]
+  - bm/ds40flash: [ "bm/glm51", "nvidia/kimik26", "longcat" ]
+  - bm/glm47: [ "bm/ds40flash", "bm/glm51", "nvidia/glm52", "longcat" ]
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
   - FAST: [ "google/gemma4", "longcat", "nvidia/kimik26", "nvidia/glm52", "bm/glm47", "zai/glm47" ]
