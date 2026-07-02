@@ -57,122 +57,122 @@ model_list:
 # them into a load-balanced pool. If one fails, LiteLLM tries the others.
 # ────────────────────────────────────────────────────────────────────────────
 
-# --- NVIDIA GLM-5.1 Pool ---
-- model_name: nvidia/glm51
+# --- NVIDIA GLM-5.2 Pool ---
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_1 # Resolves from environment variable at runtime
     api_key: os.environ/NVIDIA_API_KEY_1
     drop_params: true # Drop unsupported parameters to prevent 400 Bad Request errors
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_2
     api_key: os.environ/NVIDIA_API_KEY_2
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_3
     api_key: os.environ/NVIDIA_API_KEY_3
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_4
     api_key: os.environ/NVIDIA_API_KEY_4
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_5
     api_key: os.environ/NVIDIA_API_KEY_5
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_6
     api_key: os.environ/NVIDIA_API_KEY_6
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_7
     api_key: os.environ/NVIDIA_API_KEY_7
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_8
     api_key: os.environ/NVIDIA_API_KEY_8
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_9
     api_key: os.environ/NVIDIA_API_KEY_9
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_10
     api_key: os.environ/NVIDIA_API_KEY_10
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_11
     api_key: os.environ/NVIDIA_API_KEY_11
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_12
     api_key: os.environ/NVIDIA_API_KEY_12
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_13
     api_key: os.environ/NVIDIA_API_KEY_13
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_14
     api_key: os.environ/NVIDIA_API_KEY_14
     drop_params: true
     rpm: 2 # to spread the load
 
-- model_name: nvidia/glm51
+- model_name: nvidia/glm52
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/NVIDIA_PROXY_BASE_15
     api_key: os.environ/NVIDIA_API_KEY_15
     drop_params: true
@@ -374,7 +374,7 @@ model_list:
 # --- Bluesminds GLM 51 Pool ---
 - model_name: bm/glm51
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/BM_PROXY_BASE_1
     api_key: os.environ/BM_API_KEY_1
     rpm: 5
@@ -385,7 +385,7 @@ model_list:
 
 - model_name: bm/glm51
   litellm_params:
-    model: openai/z-ai/glm-5.1
+    model: openai/z-ai/glm-5.2
     api_base: os.environ/BM_PROXY_BASE_2
     api_key: os.environ/BM_API_KEY_2
     rpm: 5
@@ -458,36 +458,36 @@ router_settings:
   # LiteLLM processes fallback chains in a flat manner. It does not recurse.
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
-  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "nvidia/glm51", "bm/glm47", "zai/glm47" ]
-  - SMART: [ "nvidia/glm51", "bm/glm51", "bm/glm47", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat" ]
-  - CODE: [ "nvidia/glm51", "bm/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat", "bm/glm47", "zai/glm47" ]
-  - GOON: [ "nvidia/glm51", "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
-  - nvidia/glm51: [ "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
-  - nvidia/kimik26: [ "longcat/longcat", "google/gemma4", "nvidia/glm51" ]
-  - google/gemma4: [ "longcat/longcat", "nvidia/kimik26", "nvidia/glm51", [] ]
-  - longcat/longcat: [ "google/gemma4", "nvidia/kimik26", "nvidia/glm51", [] ]
-  - zai/glm52: [ "zai/glm51", "zai/glm47", "nvidia/glm51", "longcat/longcat" ]
-  - zai/glm51: [ "zai/glm47", "zai/glm52", "nvidia/glm51", "longcat/longcat" ]
-  - zai/glm47: [ "zai/glm51", "zai/glm52", "nvidia/glm51", "longcat/longcat" ]
-  - bm/glm51: [ "bm/ds40flash", "bm/glm47", "nvidia/glm51", "longcat/longcat", [] ]
+  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "nvidia/glm52", "bm/glm47", "zai/glm47" ]
+  - SMART: [ "nvidia/glm52", "longcat/longcat", "bm/glm51", "bm/glm47", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/ds40flash" ]
+  - CODE: [ "nvidia/glm52", "bm/glm51", "nvidia/kimik26", "longcat/longcat", "bm/ds40flash", "bm/glm47", "zai/glm47" ]
+  - GOON: [ "nvidia/glm52", "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
+  - nvidia/glm52: [ "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
+  - nvidia/kimik26: [ "longcat/longcat", "google/gemma4", "nvidia/glm52" ]
+  - google/gemma4: [ "longcat/longcat", "nvidia/kimik26", "nvidia/glm52", [] ]
+  - longcat/longcat: [ "google/gemma4", "nvidia/kimik26", "nvidia/glm52", [] ]
+  - zai/glm52: [ "zai/glm51", "zai/glm47", "nvidia/glm52", "longcat/longcat" ]
+  - zai/glm51: [ "zai/glm47", "zai/glm52", "nvidia/glm52", "longcat/longcat" ]
+  - zai/glm47: [ "zai/glm51", "zai/glm52", "nvidia/glm52", "longcat/longcat" ]
+  - bm/glm51: [ "bm/ds40flash", "bm/glm47", "nvidia/glm52", "longcat/longcat", [] ]
   - bm/ds40flash: [ "bm/glm51", "nvidia/kimik26", "longcat/longcat", [] ]
-  - bm/glm47: [ "bm/ds40flash", "bm/glm51", "nvidia/glm51", "longcat/longcat", [] ]
+  - bm/glm47: [ "bm/ds40flash", "bm/glm51", "nvidia/glm52", "longcat/longcat", [] ]
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
-  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "nvidia/glm51", "bm/glm47", "zai/glm47" ]
-  - SMART: [ "nvidia/glm51", "bm/glm51", "bm/glm47", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat" ]
-  - CODE: [ "nvidia/glm51", "bm/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat", "bm/glm47", "zai/glm47" ]
-  - GOON: [ "nvidia/glm51", "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
-  - nvidia/glm51: [ "nvidia/kimik26", "google/gemma4", "longcat/longcat" ]
-  - nvidia/kimik26: [ "nvidia/glm51", "longcat/longcat", "google/gemma4" ]
-  - google/gemma4: [ "longcat/longcat", "nvidia/kimik26", "nvidia/glm51" ]
-  - longcat/longcat: [ "nvidia/kimik26", "nvidia/glm51", "google/gemma4" ]
-  - zai/glm52: [ "zai/glm51", "zai/glm47", "nvidia/glm51", "longcat/longcat" ]
-  - zai/glm51: [ "zai/glm47", "zai/glm52", "nvidia/glm51", "longcat/longcat" ]
-  - zai/glm47: [ "zai/glm51", "zai/glm52", "nvidia/glm51", "longcat/longcat" ]
-  - bm/glm51: [ "bm/ds40flash", "bm/glm47", "nvidia/glm51", "longcat/longcat" ]
+  - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "nvidia/glm52", "bm/glm47", "zai/glm47" ]
+  - SMART: [ "nvidia/glm52", "bm/glm51", "bm/glm47", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat" ]
+  - CODE: [ "nvidia/glm52", "bm/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat", "bm/glm47", "zai/glm47" ]
+  - GOON: [ "nvidia/glm52", "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
+  - nvidia/glm52: [ "nvidia/kimik26", "google/gemma4", "longcat/longcat" ]
+  - nvidia/kimik26: [ "nvidia/glm52", "longcat/longcat", "google/gemma4" ]
+  - google/gemma4: [ "longcat/longcat", "nvidia/kimik26", "nvidia/glm52" ]
+  - longcat/longcat: [ "nvidia/kimik26", "nvidia/glm52", "google/gemma4" ]
+  - zai/glm52: [ "zai/glm51", "zai/glm47", "nvidia/glm52", "longcat/longcat" ]
+  - zai/glm51: [ "zai/glm47", "zai/glm52", "nvidia/glm52", "longcat/longcat" ]
+  - zai/glm47: [ "zai/glm51", "zai/glm52", "nvidia/glm52", "longcat/longcat" ]
+  - bm/glm51: [ "bm/ds40flash", "bm/glm47", "nvidia/glm52", "longcat/longcat" ]
   - bm/ds40flash: [ "bm/glm51", "nvidia/kimik26", "longcat/longcat" ]
-  - bm/glm47: [ "bm/ds40flash", "bm/glm51", "nvidia/glm51", "longcat/longcat" ]
+  - bm/glm47: [ "bm/ds40flash", "bm/glm51", "nvidia/glm52", "longcat/longcat" ]
 
   timeout: 180 # Timeout calls to a provider after 180 seconds
   num_retries: 1 # Allow 1 retry to wait out brief rate limits before falling back
