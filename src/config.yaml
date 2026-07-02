@@ -331,7 +331,7 @@ model_list:
 # --- LongCat Pool ---
 - model_name: longcat/longcat
   litellm_params:
-    model: openai/LongCat-2.0-Preview
+    model: openai/LongCat-2.0
     api_base: os.environ/LONGCAT_PROXY_BASE_1
     api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
@@ -395,9 +395,9 @@ model_list:
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 # --- Bluesminds KIMI K26 Pool ---
-- model_name: bm/kimik26
+- model_name: bm/ds40flash
   litellm_params:
-    model: openai/moonshotai/kimi-k2.6
+    model: openai/DeepSeek-V4-Flash
     api_base: os.environ/BM_PROXY_BASE_1
     api_key: os.environ/BM_API_KEY_1
     rpm: 5
@@ -406,9 +406,9 @@ model_list:
     supported_openai_params: [ "thinking", "clear_thinking" ]
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
-- model_name: bm/kimik26
+- model_name: bm/ds40flash
   litellm_params:
-    model: openai/moonshotai/kimi-k2.6
+    model: openai/DeepSeek-V4-Flash
     api_base: os.environ/BM_PROXY_BASE_2
     api_key: os.environ/BM_API_KEY_2
     rpm: 5
@@ -420,7 +420,7 @@ model_list:
 # --- Bluesminds GLM 47 Pool ---
 - model_name: bm/glm47
   litellm_params:
-    model: openai/z-ai/glm-4.7
+    model: openai/openai/zai-org/GLM-4.7
     api_base: os.environ/BM_PROXY_BASE_1
     api_key: os.environ/BM_API_KEY_1
     rpm: 5
@@ -431,7 +431,7 @@ model_list:
 
 - model_name: bm/glm47
   litellm_params:
-    model: openai/z-ai/glm-4.7
+    model: openai/openai/zai-org/GLM-4.7
     api_base: os.environ/BM_PROXY_BASE_2
     api_key: os.environ/BM_API_KEY_2
     rpm: 5
@@ -459,8 +459,8 @@ router_settings:
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
   - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "nvidia/glm51", "bm/glm47", "zai/glm47" ]
-  - SMART: [ "nvidia/glm51", "bm/glm51", "bm/glm47", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat" ]
-  - CODE: [ "nvidia/glm51", "bm/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat", "bm/glm47", "zai/glm47" ]
+  - SMART: [ "nvidia/glm51", "bm/glm51", "bm/glm47", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat" ]
+  - CODE: [ "nvidia/glm51", "bm/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat", "bm/glm47", "zai/glm47" ]
   - GOON: [ "nvidia/glm51", "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
   - nvidia/glm51: [ "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
   - nvidia/kimik26: [ "longcat/longcat", "google/gemma4", "nvidia/glm51" ]
@@ -469,14 +469,14 @@ router_settings:
   - zai/glm52: [ "zai/glm51", "zai/glm47", "nvidia/glm51", "longcat/longcat" ]
   - zai/glm51: [ "zai/glm47", "zai/glm52", "nvidia/glm51", "longcat/longcat" ]
   - zai/glm47: [ "zai/glm51", "zai/glm52", "nvidia/glm51", "longcat/longcat" ]
-  - bm/glm51: [ "bm/kimik26", "bm/glm47", "nvidia/glm51", "longcat/longcat", [] ]
-  - bm/kimik26: [ "bm/glm51", "nvidia/kimik26", "longcat/longcat", [] ]
-  - bm/glm47: [ "bm/kimik26", "bm/glm51", "nvidia/glm51", "longcat/longcat", [] ]
+  - bm/glm51: [ "bm/ds40flash", "bm/glm47", "nvidia/glm51", "longcat/longcat", [] ]
+  - bm/ds40flash: [ "bm/glm51", "nvidia/kimik26", "longcat/longcat", [] ]
+  - bm/glm47: [ "bm/ds40flash", "bm/glm51", "nvidia/glm51", "longcat/longcat", [] ]
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
   - FAST: [ "google/gemma4", "longcat/longcat", "nvidia/kimik26", "nvidia/glm51", "bm/glm47", "zai/glm47" ]
-  - SMART: [ "nvidia/glm51", "bm/glm51", "bm/glm47", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat" ]
-  - CODE: [ "nvidia/glm51", "bm/glm51", "nvidia/kimik26", "bm/kimik26", "longcat/longcat", "bm/glm47", "zai/glm47" ]
+  - SMART: [ "nvidia/glm51", "bm/glm51", "bm/glm47", "zai/glm52", "zai/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat" ]
+  - CODE: [ "nvidia/glm51", "bm/glm51", "nvidia/kimik26", "bm/ds40flash", "longcat/longcat", "bm/glm47", "zai/glm47" ]
   - GOON: [ "nvidia/glm51", "nvidia/kimik26", "longcat/longcat", "google/gemma4" ]
   - nvidia/glm51: [ "nvidia/kimik26", "google/gemma4", "longcat/longcat" ]
   - nvidia/kimik26: [ "nvidia/glm51", "longcat/longcat", "google/gemma4" ]
@@ -485,9 +485,9 @@ router_settings:
   - zai/glm52: [ "zai/glm51", "zai/glm47", "nvidia/glm51", "longcat/longcat" ]
   - zai/glm51: [ "zai/glm47", "zai/glm52", "nvidia/glm51", "longcat/longcat" ]
   - zai/glm47: [ "zai/glm51", "zai/glm52", "nvidia/glm51", "longcat/longcat" ]
-  - bm/glm51: [ "bm/kimik26", "bm/glm47", "nvidia/glm51", "longcat/longcat" ]
-  - bm/kimik26: [ "bm/glm51", "nvidia/kimik26", "longcat/longcat" ]
-  - bm/glm47: [ "bm/kimik26", "bm/glm51", "nvidia/glm51", "longcat/longcat" ]
+  - bm/glm51: [ "bm/ds40flash", "bm/glm47", "nvidia/glm51", "longcat/longcat" ]
+  - bm/ds40flash: [ "bm/glm51", "nvidia/kimik26", "longcat/longcat" ]
+  - bm/glm47: [ "bm/ds40flash", "bm/glm51", "nvidia/glm51", "longcat/longcat" ]
 
   timeout: 180 # Timeout calls to a provider after 180 seconds
   num_retries: 1 # Allow 1 retry to wait out brief rate limits before falling back
