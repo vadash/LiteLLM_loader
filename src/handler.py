@@ -106,6 +106,15 @@ class UniversalGarbageHandler(CustomLogger):
     _COMPILED_REFUSAL = tuple(re.compile(p, re.IGNORECASE) for p in REFUSAL_PATTERNS)
     _COMPILED_GARBAGE = tuple(re.compile(p, re.IGNORECASE) for p in GARBAGE_PATTERNS)
 
+    # Reasoning model thought-block stripper — matches <thought>...</thought>
+    # blocks emitted by Google Gemma and similar reasoning models.
+    _THOUGHT_PATTERN = re.compile(r'<thought>.*?</thought>\s*', re.IGNORECASE | re.DOTALL)
+
+    # Minimum max_tokens for reasoning models to finish thinking + produce output.
+    REASONING_MODELS_MIN_TOKENS = {
+        "google/gemma4": 2000,
+    }
+
     # HTML/XML document leak detector — only matches when a leaked document
     # appears at the very start of the response (not embedded code snippets).
     _HTML_LEAK_PATTERN = re.compile(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', re.IGNORECASE)
@@ -151,6 +160,7 @@ class UniversalGarbageHandler(CustomLogger):
             data["model"] = target
             log_to_file(f"[ROUTER_REWRITE] virtual_model={model} -> target={target}")
 
+        self._enforce_reasoning_model_token_floor(data)
         self._sanitize_request_params(data)
         return data
 
@@ -202,6 +212,38 @@ class UniversalGarbageHandler(CustomLogger):
             log_to_file(
                 f"[REQUEST_SANITIZED] model={data.get('model', 'unknown')} "
                 + " ".join(details)
+            )
+
+    def _enforce_reasoning_model_token_floor(self, data: dict):
+        """
+        Reasoning models (e.g. google/gemma4) wrap output in <thought> blocks
+        that consume significant token budget. If max_tokens is too low, the
+        model gets truncated mid-thought and produces no usable output. This
+        enforces a per-model minimum to ensure the response completes.
+        """
+        model = data.get("model", "")
+        floor = self.REASONING_MODELS_MIN_TOKENS.get(model)
+        if not floor:
+            return
+
+        max_tokens = data.get("max_tokens") or data.get("max_completion_tokens")
+        if max_tokens is not None:
+            try:
+                current = int(max_tokens)
+                if current < floor:
+                    data["max_tokens"] = floor
+                    log_to_file(
+                        f"[TOKEN_FLOOR] model={model} max_tokens raised {current} -> {floor}"
+                    )
+            except (ValueError, TypeError):
+                data["max_tokens"] = floor
+                log_to_file(
+                    f"[TOKEN_FLOOR] model={model} max_tokens invalid ({max_tokens!r}) -> set to {floor}"
+                )
+        else:
+            data["max_tokens"] = floor
+            log_to_file(
+                f"[TOKEN_FLOOR] model={model} max_tokens missing -> set to {floor}"
             )
 
     def _normalize_positive_int_param(
@@ -474,10 +516,26 @@ class UniversalGarbageHandler(CustomLogger):
     # Lifecycle Hooks 2 & 3: Logging and Output Auditing
     # (Non-Streaming + Streaming Completions share the same audit pipeline)
     # ─────────────────────────────────────────────────────────────────────────
+    def _strip_thought_blocks(self, response_obj, model_name: str):
+        """Strip <thought>...</thought> blocks from reasoning model responses."""
+        if not hasattr(response_obj, "choices") or not response_obj.choices:
+            return
+        message = response_obj.choices[0].message
+        actual_content = getattr(message, "content", None) or ""
+        if actual_content and "<thought" in actual_content.lower():
+            stripped = self._THOUGHT_PATTERN.sub("", actual_content).strip()
+            if stripped != actual_content.strip():
+                log_to_file(
+                    f"[THOUGHT_STRIP] model={model_name} "
+                    f"original_len={len(actual_content)} stripped_len={len(stripped)}"
+                )
+                message.content = stripped
+
     async def _audit_response(self, kwargs, response_obj, *, stream: bool):
         """Shared audit pipeline used by both completion and streaming hooks."""
         deployment_id = self._get_deployment_id(kwargs)
         model_name = self._get_model_alias(kwargs)
+
         preview = self._get_response_preview(response_obj)
 
         tag = "STREAM_COMPLETE" if stream else "RESPONSE"
@@ -522,21 +580,40 @@ class UniversalGarbageHandler(CustomLogger):
     # ─────────────────────────────────────────────────────────────────────────
     # Lifecycle Hook 5: Post-Call Guard (runs BEFORE response reaches client)
     # ─────────────────────────────────────────────────────────────────────────
-    async def async_post_call_success_deployment_hook(
-        self, data, response_obj, call_type
+    async def async_post_call_success_hook(
+        self, data: dict, response, user_api_key_dict=None
     ):
         """
         Inspects the response after the upstream call completes but BEFORE it
-        is returned to the client. If the response contains garbage fragments
-        that the client will misinterpret as tool calls (e.g. "Deferred tools
-        list", "ToolSearch"), mark the deployment dead and raise so the proxy's
-        retry/fallback chain kicks in — the client never sees the garbage.
+        is returned to the client. Strips thought blocks from reasoning models
+        and blocks garbage fragments that the client would misinterpret.
         """
-        if not hasattr(response_obj, "choices") or not response_obj.choices:
-            return response_obj
+        if not hasattr(response, "choices") or not response.choices:
+            return response
 
-        message = response_obj.choices[0].message
+        message = response.choices[0].message
         actual_content = getattr(message, "content", None) or ""
+
+        # Strip <thought> blocks from reasoning models (e.g. google/gemma4).
+        # These models wrap all output in <thought>...</thought> tags which are
+        # internal reasoning artifacts, not user-facing content.
+        if actual_content and "<thought" in actual_content.lower():
+            model_name = (
+                data.get("litellm_params", {})
+                .get("metadata", {})
+                .get("model_group")
+                or data.get("model", "unknown")
+            )
+            if model_name in self.REASONING_MODELS_MIN_TOKENS or model_name == "google/gemma4":
+                stripped = self._THOUGHT_PATTERN.sub("", actual_content).strip()
+                if stripped != actual_content.strip():
+                    log_to_file(
+                        f"[THOUGHT_STRIP] model={model_name} "
+                        f"original_len={len(actual_content)} stripped_len={len(stripped)}"
+                    )
+                    message.content = stripped
+                    actual_content = stripped
+
         reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
         combined = actual_content + " " + reasoning
 
@@ -582,7 +659,7 @@ class UniversalGarbageHandler(CustomLogger):
                 llm_provider="",
             )
 
-        return response_obj
+        return response
 
 
 # Instantiate class to automatically register callback within LiteLLM
