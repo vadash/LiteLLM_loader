@@ -371,6 +371,18 @@ model_list:
     supported_openai_params: [ "thinking", "clear_thinking" ]
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
+# old shit but redirects internally to glm47. Saves plan quota
+- model_name: zai/glm-4.5-air
+  litellm_params:
+    model: anthropic/glm-4.5-air
+    api_base: os.environ/ZAI_PROXY_BASE_1
+    api_key: os.environ/ZAI_API_KEY
+    rpm: 10
+    supports_reasoning: true # Tells LiteLLM to preserve reasoning/thinking tokens
+    # Tell the parser to permit these reasoning controls to reach the model
+    supported_openai_params: [ "thinking", "clear_thinking" ]
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
+
 # ────────────────────────────────────────────────────────────────────────────
 # Router Settings
 # ────────────────────────────────────────────────────────────────────────────
@@ -392,29 +404,29 @@ router_settings:
   # LiteLLM processes fallback chains in a flat manner. It does not recurse.
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
-  - FAST: [ "google/gemma4", "longcat", "nvidia/kimik26", "nvidia/glm52", "zai/glm47" ]
+  - FAST: [ "google/gemma4", "longcat", "nvidia/kimik26", "nvidia/glm52", "zai/glm-4.5-air", "zai/glm47" ]
   - SMART: [ "nvidia/glm52", "longcat", "zai/glm52", "zai/glm51", "nvidia/kimik26" ]
-  - CODE: [ "nvidia/glm52", "nvidia/kimik26", "longcat", "zai/glm47" ]
-  - GOON: [ "nvidia/glm52", "zai/glm52", "longcat" ]
+  - CODE: [ "nvidia/glm52", "nvidia/kimik26", "longcat", "zai/glm-4.5-air", "zai/glm47" ]
+  - GOON: [ "nvidia/glm52", "zai/glm52", "zai/glm-4.5-air", "longcat" ]
   - nvidia/glm52: [ "nvidia/kimik26", "longcat", "google/gemma4" ]
   - nvidia/kimik26: [ "longcat", "google/gemma4", "nvidia/glm52" ]
   - google/gemma4: [ "longcat", "nvidia/kimik26", "nvidia/glm52" ]
   - longcat: [ "google/gemma4", "nvidia/kimik26", "nvidia/glm52" ]
-  - zai/glm52: [ "zai/glm51", "zai/glm47", "nvidia/glm52", "longcat" ]
-  - zai/glm51: [ "zai/glm47", "zai/glm52", "nvidia/glm52", "longcat" ]
+  - zai/glm52: [ "zai/glm51", "zai/glm-4.5-air", "zai/glm47", "nvidia/glm52", "longcat" ]
+  - zai/glm51: [ "zai/glm-4.5-air", "zai/glm47", "zai/glm52", "nvidia/glm52", "longcat" ]
   - zai/glm47: [ "zai/glm51", "zai/glm52", "nvidia/glm52", "longcat" ]
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
-  - FAST: [ "google/gemma4", "longcat", "nvidia/kimik26", "nvidia/glm52", "zai/glm47" ]
+  - FAST: [ "google/gemma4", "longcat", "nvidia/kimik26", "nvidia/glm52", "zai/glm-4.5-air", "zai/glm47" ]
   - SMART: [ "nvidia/glm52", "longcat", "zai/glm52", "zai/glm51", "nvidia/kimik26" ]
-  - CODE: [ "nvidia/glm52", "nvidia/kimik26", "longcat", "zai/glm47" ]
-  - GOON: [ "nvidia/glm52", "zai/glm52", "longcat" ]
+  - CODE: [ "nvidia/glm52", "nvidia/kimik26", "longcat", "zai/glm-4.5-air", "zai/glm47" ]
+  - GOON: [ "nvidia/glm52", "zai/glm52", "zai/glm-4.5-air", "longcat" ]
   - nvidia/glm52: [ "nvidia/kimik26", "longcat", "google/gemma4" ]
   - nvidia/kimik26: [ "longcat", "google/gemma4", "nvidia/glm52" ]
   - google/gemma4: [ "longcat", "nvidia/kimik26", "nvidia/glm52" ]
   - longcat: [ "google/gemma4", "nvidia/kimik26", "nvidia/glm52" ]
-  - zai/glm52: [ "zai/glm51", "zai/glm47", "nvidia/glm52", "longcat" ]
-  - zai/glm51: [ "zai/glm47", "zai/glm52", "nvidia/glm52", "longcat" ]
+  - zai/glm52: [ "zai/glm51", "zai/glm-4.5-air", "zai/glm47", "nvidia/glm52", "longcat" ]
+  - zai/glm51: [ "zai/glm-4.5-air", "zai/glm47", "zai/glm52", "nvidia/glm52", "longcat" ]
   - zai/glm47: [ "zai/glm51", "zai/glm52", "nvidia/glm52", "longcat" ]
 
   timeout: 180 # Timeout calls to a provider after 180 seconds
