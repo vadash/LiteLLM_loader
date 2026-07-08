@@ -59,7 +59,7 @@ class UniversalGarbageHandler(CustomLogger):
     # Virtual entry points -> real model group. Each alias is rewritten in
     # async_pre_call_hook so the dummy config entries never actually fire.
     VIRTUAL_MODEL_MAP = {
-        "FAST": "google/gemma4",
+        "FAST": "nvidia/fast",
         "SMART": "nvidia/glm52",
         "CODE": "nvidia/glm52",
         "GOON": "nvidia/glm52",

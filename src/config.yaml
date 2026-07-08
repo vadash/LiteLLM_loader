@@ -57,8 +57,8 @@ model_list:
 # them into a load-balanced pool. If one fails, LiteLLM tries the others.
 # ────────────────────────────────────────────────────────────────────────────
 
-# --- NVIDIA Mistral Large 3 675B Pool ---
-- model_name: nvidia/mistral3675b
+# --- NVIDIA Fast Pool: Mistral Large 3 675B + Step 3.7 Flash ---
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_1
@@ -66,7 +66,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_2
@@ -74,7 +74,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_3
@@ -82,7 +82,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_4
@@ -90,7 +90,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_5
@@ -98,7 +98,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_6
@@ -106,7 +106,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_7
@@ -114,7 +114,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_8
@@ -122,7 +122,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_9
@@ -130,7 +130,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_10
@@ -138,7 +138,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_11
@@ -146,7 +146,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_12
@@ -154,7 +154,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_13
@@ -162,7 +162,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_14
@@ -170,7 +170,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/mistral3675b
+- model_name: nvidia/fast
   litellm_params:
     model: openai/mistralai/mistral-large-3-675b-instruct-2512
     api_base: os.environ/NVIDIA_PROXY_BASE_15
@@ -178,8 +178,8 @@ model_list:
     drop_params: true
     rpm: 2
 
-# --- NVIDIA Step 3.7 Flash Pool ---
-- model_name: nvidia/step37flash
+# --- NVIDIA Fast Pool continued: Step 3.7 Flash ---
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_1
@@ -187,7 +187,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_2
@@ -195,7 +195,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_3
@@ -203,7 +203,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_4
@@ -211,7 +211,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_5
@@ -219,7 +219,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_6
@@ -227,7 +227,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_7
@@ -235,7 +235,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_8
@@ -243,7 +243,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_9
@@ -251,7 +251,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_10
@@ -259,7 +259,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_11
@@ -267,7 +267,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_12
@@ -275,7 +275,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_13
@@ -283,7 +283,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_14
@@ -291,7 +291,7 @@ model_list:
     drop_params: true
     rpm: 2
 
-- model_name: nvidia/step37flash
+- model_name: nvidia/fast
   litellm_params:
     model: openai/stepfun-ai/step-3.7-flash
     api_base: os.environ/NVIDIA_PROXY_BASE_15
@@ -646,12 +646,11 @@ router_settings:
   # LiteLLM processes fallback chains in a flat manner. It does not recurse.
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
-  - FAST: [ "nvidia/mistral3675b", "nvidia/step37flash", "google/gemma4", "longcat", "nvidia/kimik26", "nvidia/glm52", "zai/glm-4.5-air", "zai/glm47" ]
+  - FAST: [ "nvidia/fast", "google/gemma4", "longcat", "zai/glm-4.5-air", "nvidia/kimik26", "nvidia/glm52", "zai/glm47" ]
   - SMART: [ "nvidia/glm52", "longcat", "zai/glm52", "zai/glm51", "nvidia/kimik26" ]
   - CODE: [ "nvidia/glm52", "nvidia/kimik26", "longcat", "zai/glm-4.5-air", "zai/glm47" ]
   - GOON: [ "nvidia/glm52", "zai/glm52", "zai/glm-4.5-air", "longcat" ]
-  - nvidia/mistral3675b: [ "nvidia/step37flash", "google/gemma4", "longcat" ]
-  - nvidia/step37flash: [ "nvidia/mistral3675b", "google/gemma4", "longcat" ]
+  - nvidia/fast: [ "google/gemma4", "longcat", "zai/glm-4.5-air", "nvidia/kimik26", "nvidia/glm52", "zai/glm47" ]
   - nvidia/glm52: [ "nvidia/kimik26", "longcat", "google/gemma4" ]
   - nvidia/kimik26: [ "longcat", "google/gemma4", "nvidia/glm52" ]
   - google/gemma4: [ "longcat", "nvidia/kimik26", "nvidia/glm52" ]
@@ -662,12 +661,11 @@ router_settings:
   - zai/glm-4.5-air: [ "zai/glm47", "zai/glm51", "nvidia/glm52", "longcat" ]
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
-  - FAST: [ "nvidia/mistral3675b", "nvidia/step37flash", "google/gemma4", "longcat", "nvidia/kimik26", "nvidia/glm52", "zai/glm-4.5-air", "zai/glm47" ]
+  - FAST: [ "nvidia/fast", "google/gemma4", "longcat", "zai/glm-4.5-air", "nvidia/kimik26", "nvidia/glm52", "zai/glm47" ]
   - SMART: [ "nvidia/glm52", "longcat", "zai/glm52", "zai/glm51", "nvidia/kimik26" ]
   - CODE: [ "nvidia/glm52", "nvidia/kimik26", "longcat", "zai/glm-4.5-air", "zai/glm47" ]
   - GOON: [ "nvidia/glm52", "zai/glm52", "zai/glm-4.5-air", "longcat" ]
-  - nvidia/mistral3675b: [ "nvidia/step37flash", "google/gemma4", "longcat" ]
-  - nvidia/step37flash: [ "nvidia/mistral3675b", "google/gemma4", "longcat" ]
+  - nvidia/fast: [ "google/gemma4", "longcat", "zai/glm-4.5-air", "nvidia/kimik26", "nvidia/glm52", "zai/glm47" ]
   - nvidia/glm52: [ "nvidia/kimik26", "longcat", "google/gemma4" ]
   - nvidia/kimik26: [ "longcat", "google/gemma4", "nvidia/glm52" ]
   - google/gemma4: [ "longcat", "nvidia/kimik26", "nvidia/glm52" ]
