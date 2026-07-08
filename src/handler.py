@@ -67,7 +67,7 @@ class UniversalGarbageHandler(CustomLogger):
 
     # Client UIs sometimes send generation knobs from non-OpenAI APIs. These
     # break the OpenAI-compatible gateways in this config when forwarded.
-    REQUEST_PARAMS_TO_DROP = frozenset({"do_sample"})
+    REQUEST_PARAMS_TO_DROP = frozenset({"do_sample", "chat_template_kwargs"})
     INTEGER_REQUEST_PARAMS = ("max_tokens", "max_completion_tokens")
     EXTRA_BODY_KEYS = ("extra_body",)
 

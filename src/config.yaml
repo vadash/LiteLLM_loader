@@ -549,7 +549,7 @@ model_list:
     api_key: os.environ/GOOGLE_API_KEY_1
     drop_params: true
     # Exclude specific parameters that cause Gemma engines to error out:
-    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
+    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample", "chat_template_kwargs" ]
     rpm: 5 # to spread the load
 
 - model_name: google/gemma4
@@ -558,7 +558,7 @@ model_list:
     api_base: os.environ/GOOGLE_PROXY_BASE_2
     api_key: os.environ/GOOGLE_API_KEY_2
     drop_params: true
-    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
+    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample", "chat_template_kwargs" ]
     rpm: 5 # to spread the load
 
 - model_name: google/gemma4
@@ -567,7 +567,7 @@ model_list:
     api_base: os.environ/GOOGLE_PROXY_BASE_3
     api_key: os.environ/GOOGLE_API_KEY_3
     drop_params: true
-    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
+    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample", "chat_template_kwargs" ]
     rpm: 5 # to spread the load
 
 # --- LongCat Pool ---
@@ -637,7 +637,7 @@ router_settings:
   default_litellm_params:
     # Keep common client-side sampling knobs that OpenAI-compatible backends reject
     # out of every provider request. Per-deployment lists below are a subset of this.
-    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample" ]
+    additional_drop_params: [ "frequency_penalty", "presence_penalty", "do_sample", "chat_template_kwargs" ]
     extra_headers:
       # Some public APIs block standard python-requests headers. We mock a browser UA to prevent blocks.
       User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
