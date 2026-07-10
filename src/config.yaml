@@ -442,13 +442,9 @@ router_settings:
   # Native aliases replace the old callback rewrite and keep old client names working.
   model_group_alias:
     FAST: nvidia/cheap
-    FAST1: nvidia/cheap
     SMART: nvidia/smart
-    SMART1: nvidia/smart
     CODE: nvidia/smart
-    CODE1: nvidia/smart
     GOON: nvidia/smart
-    GOON1: nvidia/smart
 
   default_litellm_params:
     # Keep common client-side sampling knobs that OpenAI-compatible backends reject
