@@ -1,3 +1,4 @@
+import importlib.util
 import pathlib
 import sys
 import unittest
@@ -163,6 +164,20 @@ class ConfigurationTests(unittest.TestCase):
         configuration = handler.Configuration(ROOT / "src" / "config.yaml")
         self.assertEqual(configuration.resolve_alias("FAST1"), "nvidia/cheap")
         self.assertEqual(configuration.next_model("SMART"), "zai/glm52")
+
+
+class CustomLoaderCompatibilityTests(unittest.TestCase):
+    def test_handler_loads_when_module_is_not_registered_in_sys_modules(self):
+        module_name = "custom_callbacks.handler_instance"
+        spec = importlib.util.spec_from_file_location(module_name, ROOT / "src" / "handler.py")
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+
+        self.assertNotIn(module_name, sys.modules)
+        spec.loader.exec_module(module)
+
+        self.assertIsInstance(module.custom_handler, module.UniversalServiceHandler)
 
 
 if __name__ == "__main__":

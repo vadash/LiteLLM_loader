@@ -1,5 +1,6 @@
-from __future__ import annotations
-
+# LiteLLM executes callback modules without first registering them in
+# sys.modules. Keep annotations eager: Python 3.11 dataclasses consult that
+# registry when postponed annotations are enabled and crash during startup.
 import atexit
 import json
 import logging
