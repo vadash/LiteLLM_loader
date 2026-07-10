@@ -339,21 +339,25 @@ model_list:
 # --- ZAI GLM Pools ---
 - model_name: zai/glm52
   litellm_params:
-    model: openai/glm-5.2
+    model: glm-5.2
+    custom_llm_provider: "openai"
     api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
-    supports_reasoning: false
+    drop_params: true
+    supports_reasoning: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 # old shit but redirects internally to glm47. Saves plan quota
 - model_name: zai/glm-4.5-air
   litellm_params:
-    model: openai/glm-4.5-air
+    model: glm-4.5-air
+    custom_llm_provider: "openai"
     api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
-    supports_reasoning: false
+    drop_params: true
+    supports_reasoning: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
 # ────────────────────────────────────────────────────────────────────────────
