@@ -162,8 +162,10 @@ class ConfigurationTests(unittest.TestCase):
 
     def test_aliases_and_fallbacks_reference_real_groups(self):
         configuration = handler.Configuration(ROOT / "src" / "config.yaml")
-        self.assertEqual(configuration.resolve_alias("FAST1"), "nvidia/cheap")
+        self.assertEqual(configuration.resolve_alias("FAST"), "nvidia/cheap")
         self.assertEqual(configuration.next_model("SMART"), "zai/glm52")
+        self.assertEqual(configuration.fallbacks["GOON"], ["zai/glm52", "longcat"])
+        self.assertTrue(all(alias in configuration.fallbacks for alias in configuration.aliases))
 
 
 class CustomLoaderCompatibilityTests(unittest.TestCase):

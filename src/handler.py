@@ -482,7 +482,7 @@ class Configuration:
                     self.fallbacks[str(source)] = [str(target) for target in (targets or [])]
 
         referenced = set(self.aliases.values())
-        referenced.update(self.fallbacks)
+        referenced.update(source for source in self.fallbacks if source not in self.aliases)
         referenced.update(target for targets in self.fallbacks.values() for target in targets)
         missing = sorted(name for name in referenced if name not in groups)
         if missing:
@@ -490,6 +490,9 @@ class Configuration:
         missing_fallback_entries = sorted(name for name in groups if name not in self.fallbacks)
         if missing_fallback_entries:
             raise RuntimeError(f"Model groups missing fallback entries: {missing_fallback_entries}")
+        missing_alias_fallbacks = sorted(alias for alias in self.aliases if alias not in self.fallbacks)
+        if missing_alias_fallbacks:
+            raise RuntimeError(f"Model aliases missing fallback entries: {missing_alias_fallbacks}")
 
     def resolve_alias(self, model: str) -> str:
         return self.aliases.get(model, model)

@@ -458,6 +458,10 @@ router_settings:
   # LiteLLM processes fallback chains in a flat manner. It does not recurse.
   # If a model fails, it steps through this explicit list index-by-index.
   fallbacks:
+  - FAST: [ "google/gemma4", "zai/glm-4.5-air", "longcat" ]
+  - SMART: [ "zai/glm52", "longcat" ]
+  - CODE: [ "zai/glm52", "longcat" ]
+  - GOON: [ "zai/glm52", "longcat" ]
   - nvidia/cheap: [ "google/gemma4", "zai/glm-4.5-air", "longcat" ]
   - nvidia/smart: [ "zai/glm52", "longcat" ]
   - google/gemma4: [ "zai/glm-4.5-air", "longcat" ]
@@ -466,6 +470,10 @@ router_settings:
   - zai/glm-4.5-air: []
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
+  - FAST: [ "google/gemma4", "zai/glm-4.5-air", "longcat" ]
+  - SMART: [ "zai/glm52", "longcat" ]
+  - CODE: [ "zai/glm52", "longcat" ]
+  - GOON: [ "zai/glm52", "longcat" ]
   - nvidia/cheap: [ "google/gemma4", "zai/glm-4.5-air", "longcat" ]
   - nvidia/smart: [ "zai/glm52", "longcat" ]
   - google/gemma4: [ "zai/glm-4.5-air", "longcat" ]
