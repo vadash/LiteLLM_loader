@@ -340,8 +340,8 @@ model_list:
 - model_name: zai/glm52
   litellm_params:
     model: glm-5.2
-    custom_llm_provider: "anthropic"
-    api_base: os.environ/ZAI_PROXY_BASE_1
+    custom_llm_provider: "openai"
+    api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     supports_reasoning: true # Tells LiteLLM to preserve reasoning/thinking tokens
@@ -352,8 +352,8 @@ model_list:
 - model_name: zai/glm51
   litellm_params:
     model: glm-5.1
-    custom_llm_provider: "anthropic"
-    api_base: os.environ/ZAI_PROXY_BASE_1
+    custom_llm_provider: "openai"
+    api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     supports_reasoning: true # Tells LiteLLM to preserve reasoning/thinking tokens
@@ -364,8 +364,8 @@ model_list:
 - model_name: zai/glm47
   litellm_params:
     model: glm-4.7
-    custom_llm_provider: "anthropic"
-    api_base: os.environ/ZAI_PROXY_BASE_1
+    custom_llm_provider: "openai"
+    api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     supports_reasoning: true # Tells LiteLLM to preserve reasoning/thinking tokens
@@ -377,8 +377,8 @@ model_list:
 - model_name: zai/glm-4.5-air
   litellm_params:
     model: glm-4.5-air
-    custom_llm_provider: "anthropic"
-    api_base: os.environ/ZAI_PROXY_BASE_1
+    custom_llm_provider: "openai"
+    api_base: os.environ/ZAI_API_BASE
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
     supports_reasoning: true # Tells LiteLLM to preserve reasoning/thinking tokens
