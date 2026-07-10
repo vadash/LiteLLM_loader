@@ -7,8 +7,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-03-31T09:49:41.9392787Z"
-exclude-newer-span = "P7D"
+exclude-newer = "2026-07-03T08:40:23Z"
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -1463,7 +1462,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "litellm", extras = ["proxy"], specifier = "==1.82.3" }]
+requires-dist = [{ name = "litellm", extras = ["proxy"] }]
 
 [[package]]
 name = "litellm-proxy-extras"
