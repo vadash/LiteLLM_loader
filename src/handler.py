@@ -388,10 +388,10 @@ class UniversalGarbageHandler(CustomLogger):
     # ─────────────────────────────────────────────────────────────────────────
     def _get_model_alias(self, kwargs) -> str:
         """Returns the user-facing model alias (e.g. 'nvidia/glm52') instead of the provider model."""
+        litellm_params = kwargs.get("litellm_params") or {}
+        metadata = litellm_params.get("metadata") or {}
         return (
-            kwargs.get("litellm_params", {})
-            .get("metadata", {})
-            .get("model_group")
+            metadata.get("model_group")
             or kwargs.get("model", "unknown")
         )
 
