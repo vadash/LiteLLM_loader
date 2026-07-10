@@ -329,7 +329,8 @@ model_list:
 # --- LongCat Pool ---
 - model_name: longcat
   litellm_params:
-    model: anthropic/LongCat-2.0
+    model: LongCat-2.0
+    custom_llm_provider: "anthropic"
     api_base: os.environ/LONGCAT_PROXY_BASE_1
     api_key: os.environ/LONGCAT_API_KEY
     rpm: 10
@@ -338,7 +339,8 @@ model_list:
 # --- ZAI GLM Pools ---
 - model_name: zai/glm52
   litellm_params:
-    model: anthropic/glm-5.2
+    model: glm-5.2
+    custom_llm_provider: "anthropic"
     api_base: os.environ/ZAI_PROXY_BASE_1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
@@ -349,7 +351,8 @@ model_list:
 
 - model_name: zai/glm51
   litellm_params:
-    model: anthropic/glm-5.1
+    model: glm-5.1
+    custom_llm_provider: "anthropic"
     api_base: os.environ/ZAI_PROXY_BASE_1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
@@ -360,7 +363,8 @@ model_list:
 
 - model_name: zai/glm47
   litellm_params:
-    model: anthropic/glm-4.7
+    model: glm-4.7
+    custom_llm_provider: "anthropic"
     api_base: os.environ/ZAI_PROXY_BASE_1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
@@ -372,7 +376,8 @@ model_list:
 # old shit but redirects internally to glm47. Saves plan quota
 - model_name: zai/glm-4.5-air
   litellm_params:
-    model: anthropic/glm-4.5-air
+    model: glm-4.5-air
+    custom_llm_provider: "anthropic"
     api_base: os.environ/ZAI_PROXY_BASE_1
     api_key: os.environ/ZAI_API_KEY
     rpm: 10
