@@ -59,10 +59,10 @@ class UniversalGarbageHandler(CustomLogger):
     # Virtual entry points -> real model group. Each alias is rewritten in
     # async_pre_call_hook so the dummy config entries never actually fire.
     VIRTUAL_MODEL_MAP = {
-        "FAST": "nvidia/fast",
-        "SMART": "nvidia/glm52",
-        "CODE": "nvidia/glm52",
-        "GOON": "nvidia/glm52",
+        "FAST1": "nvidia/fast",
+        "SMART1": "nvidia/glm52",
+        "CODE1": "nvidia/glm52",
+        "GOON1": "nvidia/glm52",
     }
 
     # Client UIs sometimes send generation knobs from non-OpenAI APIs. These
