@@ -5,13 +5,12 @@
 # self-healing gateway that routes LLM requests across multiple backend providers.
 #
 # How Routing Works Here:
-# 1. Clients send requests to virtual entry points (e.g., "FAST" or "SMART").
-# 2. A custom handler (handler.py) intercepts the request *before* routing.
-# 3. The handler rewrites the model to the primary target and injects the
-#    appropriate fallback chain.
-# 4. If a provider returns garbage, safety refusals, or crashes, the handler
-#    cooldowns that specific deployment for 10 minutes (600s), and the router
-#    seamlessly tries the next option in the fallback list.
+# 1. Clients may use virtual entry points such as FAST, SMART, CODE, or GOON.
+# 2. LiteLLM model_group_alias resolves those names before deployment selection.
+# 3. Transport failures use the router fallback chain; response-quality failures
+#    receive one bounded retry from handler.py before reaching the client.
+# 4. Deployment failures open a short circuit breaker, while model-level
+#    refusals/format failures switch to the next provider group.
 # ==============================================================================
 
 model_list:
@@ -24,6 +23,8 @@ model_list:
 
 # --- NVIDIA Fast Pool: Mistral Large 3 675B + Step 3.7 Flash ---
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-01
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -33,6 +34,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-02
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -42,6 +45,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-03
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -51,6 +56,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-04
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -60,6 +67,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-05
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -69,6 +78,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-06
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -78,6 +89,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-07
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -87,6 +100,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-08
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -96,6 +111,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-09
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -105,6 +122,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-10
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -114,6 +133,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-11
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -123,6 +144,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-12
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -132,6 +155,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-13
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -141,6 +166,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-14
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -150,6 +177,8 @@ model_list:
     rpm: 2
 
 - model_name: nvidia/cheap
+  model_info:
+    id: nvidia-cheap-proxy-15
   litellm_params:
     model: mistralai/mistral-large-3-675b-instruct-2512
     custom_llm_provider: "openai"
@@ -160,6 +189,8 @@ model_list:
 
 # --- NVIDIA GLM-5.2 Pool ---
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-01
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -169,6 +200,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-02
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -178,6 +211,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-03
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -187,6 +222,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-04
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -196,6 +233,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-05
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -205,6 +244,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-06
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -214,6 +255,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-07
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -223,6 +266,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-08
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -232,6 +277,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-09
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -241,6 +288,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-10
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -250,6 +299,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-11
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -259,6 +310,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-12
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -268,6 +321,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-13
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -277,6 +332,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-14
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -286,6 +343,8 @@ model_list:
     rpm: 2 # to spread the load
 
 - model_name: nvidia/smart
+  model_info:
+    id: nvidia-smart-proxy-15
   litellm_params:
     model: z-ai/glm-5.2
     custom_llm_provider: "openai"
@@ -296,6 +355,8 @@ model_list:
 
 # --- Google Gemma 4 Pool ---
 - model_name: google/gemma4
+  model_info:
+    id: google-gemma4-proxy-01
   litellm_params:
     model: gemma-4-31b-it
     custom_llm_provider: "openai"
@@ -307,6 +368,8 @@ model_list:
     rpm: 5 # to spread the load
 
 - model_name: google/gemma4
+  model_info:
+    id: google-gemma4-proxy-02
   litellm_params:
     model: gemma-4-31b-it
     custom_llm_provider: "openai"
@@ -317,6 +380,8 @@ model_list:
     rpm: 5 # to spread the load
 
 - model_name: google/gemma4
+  model_info:
+    id: google-gemma4-proxy-03
   litellm_params:
     model: gemma-4-31b-it
     custom_llm_provider: "openai"
@@ -328,6 +393,8 @@ model_list:
 
 # --- LongCat Pool ---
 - model_name: longcat
+  model_info:
+    id: longcat-proxy-01
   litellm_params:
     model: LongCat-2.0
     custom_llm_provider: "anthropic"
@@ -338,6 +405,8 @@ model_list:
 
 # --- ZAI GLM Pools ---
 - model_name: zai/glm52
+  model_info:
+    id: zai-glm52-primary
   litellm_params:
     model: glm-5.2
     custom_llm_provider: "openai"
@@ -350,6 +419,8 @@ model_list:
 
 # old shit but redirects internally to glm47. Saves plan quota
 - model_name: zai/glm-4.5-air
+  model_info:
+    id: zai-glm45-air-primary
   litellm_params:
     model: glm-4.5-air
     custom_llm_provider: "openai"
@@ -364,10 +435,20 @@ model_list:
 # Router Settings
 # ────────────────────────────────────────────────────────────────────────────
 router_settings:
-  # Strategy: Evaluates past response times and routes traffic to the fastest healthy model.
-  routing_strategy: "latency-based-routing"
-  routing_strategy_args:
-    lowest_latency_buffer: 0.3 # If models are within 0.3s of each other, randomly load-balance
+  # Prefer the deployment with the least current work. This avoids concentrating
+  # traffic on a single temporarily-fast proxy until it becomes rate limited.
+  routing_strategy: "least-busy"
+
+  # Native aliases replace the old callback rewrite and keep old client names working.
+  model_group_alias:
+    FAST: nvidia/cheap
+    FAST1: nvidia/cheap
+    SMART: nvidia/smart
+    SMART1: nvidia/smart
+    CODE: nvidia/smart
+    CODE1: nvidia/smart
+    GOON: nvidia/smart
+    GOON1: nvidia/smart
 
   default_litellm_params:
     # Keep common client-side sampling knobs that OpenAI-compatible backends reject
@@ -383,39 +464,33 @@ router_settings:
   fallbacks:
   - nvidia/cheap: [ "google/gemma4", "zai/glm-4.5-air", "longcat" ]
   - nvidia/smart: [ "zai/glm52", "longcat" ]
-  - google/gemma4: []
-  - longcat: []
-  - zai/glm52: []
-  - zai/glm51: []
-  - zai/glm47: []
+  - google/gemma4: [ "zai/glm-4.5-air", "longcat" ]
+  - longcat: [ "zai/glm52" ]
+  - zai/glm52: [ "longcat" ]
   - zai/glm-4.5-air: []
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
-  #- FAST: [ "nvidia/cheap", "google/gemma4", "longcat", "zai/glm-4.5-air", "nvidia/smart", "zai/glm47" ]
-  #- SMART: [ "nvidia/smart", "zai/glm52", "longcat" ]
-  - nvidia/cheap: []
-  - nvidia/smart: []
-  - google/gemma4: []
-  - longcat: []
-  - zai/glm52: []
-  - zai/glm51: []
-  - zai/glm47: []
+  - nvidia/cheap: [ "google/gemma4", "zai/glm-4.5-air", "longcat" ]
+  - nvidia/smart: [ "zai/glm52", "longcat" ]
+  - google/gemma4: [ "zai/glm-4.5-air", "longcat" ]
+  - longcat: [ "zai/glm52" ]
+  - zai/glm52: [ "longcat" ]
   - zai/glm-4.5-air: []
 
-  timeout: 180 # Timeout calls to a provider after 180 seconds
-  num_retries: 1 # Allow 1 retry to wait out brief rate limits before falling back
+  timeout: 60 # Bound a dead/slow proxy so another base URL can serve the request quickly
+  num_retries: 0 # Switch deployments immediately; the quality handler owns one bounded semantic retry
   enable_pre_call_checks: false # Set to false to avoid making ping calls prior to every request (saves latency)
-  allowed_fails: 1 # Put a deployment on cooldown after 1 failed/garbage response
-  cooldown_time: 600 # Keep failing providers dead for 10 minutes (600s)
+  allowed_fails: 2 # Avoid removing a proxy for one isolated transient failure
+  cooldown_time: 60 # Cooldowns expire quickly and the next real request acts as a half-open probe
 
   # Per-Error Cooldown Settings:
   # Defines how many times specific errors can occur on a deployment before it is temporarily disabled.
   allowed_fails_policy:
-    # 500 Errors: Cooldown immediately. This catches synthetic 500s from your custom garbage handler.
-    InternalServerErrorAllowedFails: 1
+    # 500 Errors: tolerate one isolated failure, then briefly remove the deployment.
+    InternalServerErrorAllowedFails: 2
 
-    # 400 Errors: Cooldown immediately. This catches safety or strict context limit rejects.
-    BadRequestErrorAllowedFails: 1
+    # 400 Errors: avoid removing a healthy deployment for one client-specific request.
+    BadRequestErrorAllowedFails: 2
 
     # 502 Errors: Cooldown immediately. Catches connection drops or bad gateways.
     BadGatewayErrorAllowedFails: 1

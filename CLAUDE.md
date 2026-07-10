@@ -47,7 +47,7 @@ All scripts are thin wrappers around `litellm_ctl.py` which tracks the process v
 
 **Two model types:**
 
-1. **Virtual entry points** (aliases) — `FAST`, `SMART`, `CODE`, `GOON`. Defined in config with dummy values, rewritten by `handler.py`'s `async_pre_call_hook` to real model + fallback chain per request. Each serves a use case:
+1. **Virtual entry points** (aliases) — `FAST`, `SMART`, `CODE`, `GOON`, plus their legacy `*1` forms. Defined with LiteLLM's native `model_group_alias`; the handler does not rewrite model names. Each serves a use case:
    - `FAST` — high-volume, no limits, fastest available
    - `SMART` — planning/orchestration, prefers reasoning models
    - `CODE` — implementation tasks, code-optimized models
@@ -55,19 +55,19 @@ All scripts are thin wrappers around `litellm_ctl.py` which tracks the process v
 
 2. **Provider model groups** — named `PROVIDERCODE_MODELNAME` (e.g., `nvidia/glm51`, `zai/glm52`, `google/gemma4`). Multiple entries with the same name form a load-balanced pool.
 
-**Routing:** Latency-based with `lowest_latency_buffer: 0.3`. Fallbacks are **flat** (not recursive) — when a group fails, the router iterates that group's list directly. Every group must have a fallback entry (even `[]`) to avoid crash loops.
+**Routing:** Least-busy across interchangeable proxy deployments. Transport fallbacks are **flat** — when a group fails, the router iterates that group's list directly. Every group must have a fallback entry (even `[]`) to avoid crash loops.
 
 **Content policy fallbacks** are triggered separately when a provider rejects a prompt due to moderation.
 
 ### Empty Response Handler (`src/handler.py`)
 
-Custom callback that detects garbage LLM responses (empty content, training data leakage, leaked HTML documents, missing JSON structure) and marks deployments as dead via `router.cooldown_cache`. Implements four hook points:
-- `log_success_event` — sync completion path
+Custom callback that sanitizes requests, classifies provider failures, validates responses, and manages per-deployment circuit breakers via `router.cooldown_cache`. Invalid non-streaming responses receive one bounded quality retry before reaching the client. Implements four hook points:
 - `async_log_success_event` — async completion path
 - `async_log_stream_complete_event` — streaming completion path
-- `async_post_call_success_hook` — proxy-level last-resort guard
+- `async_post_call_success_hook` — client-facing validation and quality retry boundary
+- `async_log_failure_event` — provider failure classification
 
-**Garbage detection is intentionally loose for JSON** — only checks that `{` or `[` exists somewhere in the response. Client-side repair handles truncation/syntax issues. HTML detection only flags full leaked documents (`<!DOCTYPE`, `<html` at start of response), not code snippets.
+JSON response formats are parsed as JSON rather than guessed from punctuation. HTML detection only flags full leaked documents (`<!DOCTYPE`, `<html` at the start), not code snippets. Legitimate CJK responses are allowed; only explicit refusal patterns are rejected.
 
 ### Fallback Chain Completeness
 
@@ -75,19 +75,19 @@ Every model group that appears in a fallback list **must have its own fallback e
 
 ### Cooldown and Failure Thresholds
 
-- `cooldown_time: 600` — keep providers dead for 10 minutes
-- `allowed_fails: 1` — mark as dead after 1 garbage response
+- `cooldown_time: 60` — short default circuit with real traffic acting as the recovery probe
+- `allowed_fails: 2` — tolerate one isolated transient failure
 - Per-error-type thresholds configured in `allowed_fails_policy` (BadRequest, BadGateway, RateLimit, Timeout, ContentPolicyViolation)
 
 ### Health Checks
 
-Background health checks are **disabled** (`background_health_checks: false`). Models remain on cooldown for the full 10-minute duration.
+Background health checks are **disabled** (`background_health_checks: false`). Short cooldown expiry provides a lightweight half-open recovery probe without background traffic.
 
 ## Adding a New Model
 
 1. Add model entries in `src/config.yaml` under `model_list` with `model_name` following `PROVIDERCODE_MODELNAME` convention (e.g., `zai/glm52`, `nvidia/kimik26`)
 2. Append to both `fallbacks` and `content_policy_fallbacks` lists in `router_settings`
 3. Add an empty fallback entry (`- model_name: []`) at the end of `fallbacks`
-4. Update `src/handler.py` rewrite logic if the model is a virtual entry point target
+4. Update `router_settings.model_group_alias` if the model is a virtual entry point target
 
 **Important:** If the model appears as a fallback target, it must also have its own fallback entry (even if empty) to avoid crash loops.

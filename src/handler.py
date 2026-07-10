@@ -1,666 +1,707 @@
-import litellm
-from litellm.integrations.custom_logger import CustomLogger
-import pathlib
+from __future__ import annotations
+
+import atexit
+import json
 import logging
+import logging.handlers
+import pathlib
+import queue
 import re
+import threading
 import time
-from typing import Optional
-from datetime import datetime
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Iterable, Optional
 
-# =========================================================================
-# SILENCE NOISY LITELLM TRACEBACKS IN THE CONSOLE
-# =========================================================================
-# By default, LiteLLM prints full traceback logs every time a request fails
-# and switches to a fallback. Under heavy load, this can clutter stdout.
-# This filter suppresses redundant warnings during normal fallback operations.
-# =========================================================================
+import litellm
+import yaml
+from litellm.integrations.custom_logger import CustomLogger
+
+
+ROOT = pathlib.Path(__file__).resolve().parent
+CONFIG_FILE = ROOT / "config.yaml"
+LOG_FILE = ROOT / "litellm.log"
+
+
+def _build_logger() -> logging.Logger:
+    """Write callback logs off the async request path and rotate them safely."""
+    logger = logging.getLogger("openvault.handler")
+    if logger.handlers:
+        return logger
+
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+    log_queue: queue.Queue[logging.LogRecord] = queue.Queue(-1)
+    queue_handler = logging.handlers.QueueHandler(log_queue)
+    file_handler = logging.handlers.RotatingFileHandler(
+        LOG_FILE,
+        maxBytes=10 * 1024 * 1024,
+        backupCount=5,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(
+        logging.Formatter("[%(asctime)s] %(levelname)s %(message)s", "%Y-%m-%d %H:%M:%S")
+    )
+    listener = logging.handlers.QueueListener(log_queue, file_handler)
+    listener.start()
+    atexit.register(listener.stop)
+    logger.addHandler(queue_handler)
+    return logger
+
+
+LOGGER = _build_logger()
+
+
 class SuppressNoisyRouterErrors(logging.Filter):
-    def filter(self, record):
-        msg = record.getMessage()
-        # Suppress standard fallback warning tracebacks
-        if "Error occurred while trying to do fallbacks" in msg:
-            return False
-        # Suppress orphaned tracebacks associated with gateway or format drops
-        if "Traceback (most recent call last):" in msg and "OpenAIException" in msg:
-            return False
-        return True
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        return "Error occurred while trying to do fallbacks" not in message
 
-# Attach the custom filter to LiteLLM's internal system loggers
+
 for _logger_name in ("LiteLLM Router", "LiteLLM", "litellm"):
     logging.getLogger(_logger_name).addFilter(SuppressNoisyRouterErrors())
-# =========================================================================
-
-LOG_FILE = pathlib.Path(__file__).parent / "litellm.log"
-
-def log_to_file(message: str):
-    """Utility function to write timestamped log entries to litellm.log."""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    try:
-        with open(LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(f"[{timestamp}] {message}\n")
-    except Exception:
-        pass
 
 
-class UniversalGarbageHandler(CustomLogger):
-    """
-    A LiteLLM custom callback class.
+class FailureCategory(str, Enum):
+    AUTHENTICATION = "authentication"
+    BAD_GATEWAY = "bad_gateway"
+    CLIENT_ERROR = "client_error"
+    CONNECTION = "connection"
+    CONTENT_POLICY = "content_policy"
+    EMPTY_RESPONSE = "empty_response"
+    GARBAGE_RESPONSE = "garbage_response"
+    INVALID_JSON = "invalid_json"
+    RATE_LIMIT = "rate_limit"
+    REFUSAL = "refusal"
+    SERVER_ERROR = "server_error"
+    TIMEOUT = "timeout"
+    UNKNOWN = "unknown"
 
-    This class hooks into the router lifecycle to:
-    1. Translate virtual models (FAST/SMART/CODE/GOON) into active endpoints before calling them.
-    2. Inspect incoming LLM outputs (both standard completions and streams).
-    3. Programmatically quarantine (cooldown) any deployment returning garbage/refusals.
-    """
 
-    COOLDOWN_SECONDS = 600
-    EMPTY_RESPONSE_COOLDOWN_SECONDS = 120
-    CONSECUTIVE_FAILURE_THRESHOLD = 3
+class FailureScope(str, Enum):
+    DEPLOYMENT = "deployment"
+    MODEL = "model"
+    REQUEST = "request"
 
-    # Virtual entry points -> real model group. Each alias is rewritten in
-    # async_pre_call_hook so the dummy config entries never actually fire.
-    VIRTUAL_MODEL_MAP = {
-        "FAST1": "nvidia/fast",
-        "SMART1": "nvidia/glm52",
-        "CODE1": "nvidia/glm52",
-        "GOON1": "nvidia/glm52",
-    }
 
-    # Client UIs sometimes send generation knobs from non-OpenAI APIs. These
-    # break the OpenAI-compatible gateways in this config when forwarded.
-    REQUEST_PARAMS_TO_DROP = frozenset({"do_sample", "chat_template_kwargs"})
-    INTEGER_REQUEST_PARAMS = ("max_tokens", "max_completion_tokens")
-    EXTRA_BODY_KEYS = ("extra_body",)
+@dataclass(frozen=True)
+class FailureDecision:
+    category: FailureCategory
+    scope: FailureScope
+    cooldown_seconds: int
+    threshold: int = 1
+    retry_current_request: bool = True
 
-    # Regular expressions to identify common system alignment/moderation refusals.
-    REFUSAL_PATTERNS = [
-        # English Refusal Patterns
-        r"I can(?:not|'t) (?:fulfill|comply with|process) (?:this|your) request",
-        r"against my (?:programming|guidelines|safety|ethical|core) (?:principles|policies|guidelines)",
-        r"violate(?:s)? (?:safety|OpenAI|Anthropic|guidelines|policies)",
-        r"I can(?:not|'t) (?:generate|create|provide|write) (?:content|text|responses|stories|JSON) that (?:is|depicts|involves|contains?)",
-        r"I(?:'m| am) sorry, (?:but )?I can(?:not|'t) (?:assist|help) with that",
 
-        # Russian Refusal Patterns
-        r"Я не могу (?:выполнить|обработать) (?:этот )?запрос",
-        r"противоречит (?:моим )?(?:правилам|политике|этическим)",
-        r"нарушает (?:правила|политику|принципы) (?:безопасности|OpenAI|Anthropic)",
-        r"Я не могу (?:создавать|генерировать|предоставлять) контент, который",
-        r"Извините, но я не могу (?:помочь|выполнить|сгенерировать|предоставить)",
+@dataclass(frozen=True)
+class ValidationResult:
+    valid: bool
+    category: Optional[FailureCategory] = None
+    reason: str = ""
+    scope: FailureScope = FailureScope.DEPLOYMENT
 
-        # Chinese Refusal Patterns
-        r"作为一个(?:人工智能|AI|语言模型)",
-        r"抱歉，我无法(?:满足|处理)(?:您|你)的请求",
-        r"我无法为(?:您|你)(?:生成|提供|创建)",
-        r"违反(?:了)?(?:相关|使用)?(?:政策|规定|准则|法律|安全)",
-        r"我不能(?:协助|提供)(?:此类|这方面)的",
-    ]
 
-    # Add loop detection / gibberish detection signatures here as needed
-    GARBAGE_PATTERNS = [
-        r"Deferred tools? list",
-        r"ToolSearch tools? not shown",
-    ]
-
-    # Pre-compiled regexes. Compiling once at class load avoids re-parsing the
-    # patterns on every response check, which matters under heavy load.
-    _COMPILED_REFUSAL = tuple(re.compile(p, re.IGNORECASE) for p in REFUSAL_PATTERNS)
-    _COMPILED_GARBAGE = tuple(re.compile(p, re.IGNORECASE) for p in GARBAGE_PATTERNS)
-
-    # Reasoning model thought-block stripper — matches <thought>...</thought>
-    # blocks emitted by Google Gemma and similar reasoning models.
-    _THOUGHT_PATTERN = re.compile(r'<thought>.*?</thought>\s*', re.IGNORECASE | re.DOTALL)
-
-    # Minimum max_tokens for reasoning models to finish thinking + produce output.
-    REASONING_MODELS_MIN_TOKENS = {
-        "google/gemma4": 2000,
-    }
-
-    # HTML/XML document leak detector — only matches when a leaked document
-    # appears at the very start of the response (not embedded code snippets).
-    _HTML_LEAK_PATTERN = re.compile(r'^\s*(?:<!DOCTYPE|<html|<\?xml|<body)', re.IGNORECASE)
-
-    # CJK Unified Ideographs (common Chinese/Japanese/Korean characters).
-    # Covers the main block plus extensions A and B for thorough detection.
-    _CJK_PATTERN = re.compile(
-        r'[㐀-䶿一-鿿豈-﫿'
-        r'\U00020000-\U0002A6DF\U0002A700-\U0002B73F]'
+class RequestSanitizer:
+    DROP_PARAMS = frozenset(
+        {
+            "chat_template_kwargs",
+            "do_sample",
+            "frequency_penalty",
+            "presence_penalty",
+        }
     )
-    CJK_REJECT_THRESHOLD = 10
+    INTEGER_PARAMS = ("max_tokens", "max_completion_tokens")
+    REASONING_TOKEN_FLOORS = {"google/gemma4": 2000}
 
-    def __init__(self):
-        # Per-instance failure tracking. Defining these at class level would
-        # silently share state across instances (and across re-imports), which
-        # is not what we want.
-        self._deployment_failures: dict[str, int] = {}
-        self._deployment_last_failure: dict[str, float] = {}
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Lifecycle Hook 1: Pre-Call Request Interception
-    # ─────────────────────────────────────────────────────────────────────────
-    async def async_pre_call_hook(
-        self,
-        user_api_key_dict: dict,
-        cache,
-        data: dict,
-        call_type: str,
-        *args,
-        **kwargs,
-    ):
-        """
-        Pre-call hook to intercept virtual/entry model requests (FAST/SMART/...)
-        and map them to real model groups. This avoids hitting dummy deployments
-        defined in config.yaml.
-
-        Using *args and **kwargs makes this signature fully compatible with
-        varied versions of LiteLLM (which may pass 'cache' or 'cache_dict' keywords).
-        """
-        model = data.get("model")
-        target = self.VIRTUAL_MODEL_MAP.get(model)
-        if target:
-            data["model"] = target
-            log_to_file(f"[ROUTER_REWRITE] virtual_model={model} -> target={target}")
-
-        self._enforce_reasoning_model_token_floor(data)
-        self._sanitize_request_params(data)
-        return data
-
-    async def async_pre_call_deployment_hook(
-        self, kwargs: dict, call_type: Optional[object]
-    ) -> Optional[dict]:
-        """
-        Runs after LiteLLM selects a concrete deployment and before it builds the
-        provider request. This catches params added or preserved after proxy pre-call.
-        """
-        self._sanitize_request_params(kwargs)
-        return kwargs
-
-    def _sanitize_request_params(self, data: dict):
-        """Remove or normalize client params known to break provider JSON parsing."""
+    def sanitize(self, data: dict[str, Any]) -> dict[str, Any]:
         removed: list[str] = []
         normalized: list[str] = []
+        containers: list[tuple[str, dict[str, Any]]] = [("", data)]
 
-        containers: list[tuple[str, dict]] = [("", data)]
-        for container_key in self.EXTRA_BODY_KEYS:
-            container = data.get(container_key)
-            if isinstance(container, dict):
-                containers.append((f"{container_key}.", container))
-            elif container is not None:
-                data.pop(container_key, None)
-                removed.append(container_key)
+        extra_body = data.get("extra_body")
+        if isinstance(extra_body, dict):
+            containers.append(("extra_body.", extra_body))
+        elif extra_body is not None:
+            data.pop("extra_body", None)
+            removed.append("extra_body")
 
-        for prefix, params in containers:
-            for param in self.REQUEST_PARAMS_TO_DROP:
-                if param in params:
-                    params.pop(param, None)
-                    removed.append(f"{prefix}{param}")
+        for prefix, container in containers:
+            for name in self.DROP_PARAMS:
+                if name in container:
+                    container.pop(name, None)
+                    removed.append(prefix + name)
+            for name in self.INTEGER_PARAMS:
+                self._normalize_positive_int(container, name, prefix, removed, normalized)
 
-            for param in self.INTEGER_REQUEST_PARAMS:
-                self._normalize_positive_int_param(
-                    params=params,
-                    param=param,
-                    prefix=prefix,
-                    removed=removed,
-                    normalized=normalized,
-                )
+        model = self.model_group(data)
+        floor = self.REASONING_TOKEN_FLOORS.get(model)
+        if floor:
+            current = data.get("max_completion_tokens", data.get("max_tokens"))
+            try:
+                current_int = int(current) if current is not None and not isinstance(current, bool) else 0
+            except (TypeError, ValueError):
+                current_int = 0
+            if current_int < floor:
+                data["max_tokens"] = floor
+                data.pop("max_completion_tokens", None)
+                normalized.append(f"reasoning_token_floor={floor}")
 
         if removed or normalized:
-            details = []
-            if removed:
-                details.append(f"removed={sorted(set(removed))}")
-            if normalized:
-                details.append(f"normalized={sorted(set(normalized))}")
-            log_to_file(
-                f"[REQUEST_SANITIZED] model={data.get('model', 'unknown')} "
-                + " ".join(details)
+            LOGGER.info(
+                "event=request_sanitized model=%s removed=%s normalized=%s",
+                model,
+                sorted(set(removed)),
+                sorted(set(normalized)),
             )
+        return data
 
-    def _enforce_reasoning_model_token_floor(self, data: dict):
-        """
-        Reasoning models (e.g. google/gemma4) wrap output in <thought> blocks
-        that consume significant token budget. If max_tokens is too low, the
-        model gets truncated mid-thought and produces no usable output. This
-        enforces a per-model minimum to ensure the response completes.
-        """
-        model = data.get("model", "")
-        floor = self.REASONING_MODELS_MIN_TOKENS.get(model)
-        if not floor:
-            return
+    @staticmethod
+    def model_group(data: dict[str, Any]) -> str:
+        params = data.get("litellm_params") or {}
+        metadata = params.get("metadata") or data.get("metadata") or {}
+        return str(metadata.get("model_group") or data.get("model") or "unknown")
 
-        max_tokens = data.get("max_tokens") or data.get("max_completion_tokens")
-        if max_tokens is not None:
-            try:
-                current = int(max_tokens)
-                if current < floor:
-                    data["max_tokens"] = floor
-                    log_to_file(
-                        f"[TOKEN_FLOOR] model={model} max_tokens raised {current} -> {floor}"
-                    )
-            except (ValueError, TypeError):
-                data["max_tokens"] = floor
-                log_to_file(
-                    f"[TOKEN_FLOOR] model={model} max_tokens invalid ({max_tokens!r}) -> set to {floor}"
-                )
-        else:
-            data["max_tokens"] = floor
-            log_to_file(
-                f"[TOKEN_FLOOR] model={model} max_tokens missing -> set to {floor}"
-            )
-
-    def _normalize_positive_int_param(
-        self,
-        params: dict,
-        param: str,
+    @staticmethod
+    def _normalize_positive_int(
+        container: dict[str, Any],
+        name: str,
         prefix: str,
         removed: list[str],
         normalized: list[str],
-    ):
-        if param not in params:
+    ) -> None:
+        if name not in container:
             return
-
-        value = params.get(param)
-        clean_value = None
-
-        if isinstance(value, bool) or value is None:
-            pass
-        elif isinstance(value, int):
-            clean_value = value
+        value = container[name]
+        clean: Optional[int] = None
+        if isinstance(value, int) and not isinstance(value, bool):
+            clean = value
         elif isinstance(value, float) and value.is_integer():
-            clean_value = int(value)
-        elif isinstance(value, str):
-            stripped = value.strip()
-            if stripped.isdecimal():
-                clean_value = int(stripped)
+            clean = int(value)
+        elif isinstance(value, str) and value.strip().isdecimal():
+            clean = int(value.strip())
 
-        if clean_value is None or clean_value <= 0:
-            params.pop(param, None)
-            removed.append(f"{prefix}{param}")
+        if clean is None or clean <= 0:
+            container.pop(name, None)
+            removed.append(prefix + name)
+        elif clean != value:
+            container[name] = clean
+            normalized.append(prefix + name)
+
+
+class ResponseValidator:
+    THOUGHT_PATTERN = re.compile(r"<thought>.*?</thought>\s*", re.IGNORECASE | re.DOTALL)
+    HTML_DOCUMENT = re.compile(r"^\s*(?:<!DOCTYPE|<html|<\?xml|<body)", re.IGNORECASE)
+    CJK = re.compile(
+        r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff"
+        r"\U00020000-\U0002A6DF\U0002A700-\U0002B73F]"
+    )
+    REFUSALS = tuple(
+        re.compile(pattern, re.IGNORECASE)
+        for pattern in (
+            r"I can(?:not|'t) (?:fulfill|comply with|process) (?:this|your) request",
+            r"against my (?:programming|guidelines|safety|ethical|core)",
+            r"I(?:'m| am) sorry, (?:but )?I can(?:not|'t) (?:assist|help|provide)",
+            r"Я не могу (?:выполнить|обработать|помочь)",
+            r"Извините, но я не могу",
+            r"抱歉，我无法",
+            r"我不能(?:协助|提供)",
+            r"违反(?:了)?(?:相关|使用)?(?:政策|规定|准则|法律|安全)",
+        )
+    )
+    GARBAGE = tuple(
+        re.compile(pattern, re.IGNORECASE)
+        for pattern in (
+            r"Deferred tools? list",
+            r"ToolSearch tools? not shown",
+            r"^\s*(?:error|null|undefined|none)\s*$",
+        )
+    )
+
+    def validate(self, response: Any, request: dict[str, Any]) -> ValidationResult:
+        message = self._first_message(response)
+        if message is None:
+            return ValidationResult(False, FailureCategory.EMPTY_RESPONSE, "no_choices", FailureScope.DEPLOYMENT)
+
+        content = self._text(getattr(message, "content", None))
+        reasoning = self._text(
+            getattr(message, "reasoning", None)
+            or getattr(message, "reasoning_content", None)
+        )
+        tool_calls = getattr(message, "tool_calls", None)
+        combined = f"{content} {reasoning}".strip()
+
+        if not combined and not tool_calls:
+            return ValidationResult(False, FailureCategory.EMPTY_RESPONSE, "empty_response", FailureScope.DEPLOYMENT)
+
+        for pattern in self.REFUSALS:
+            if pattern.search(combined):
+                return ValidationResult(False, FailureCategory.REFUSAL, f"refusal:{pattern.pattern[:32]}", FailureScope.MODEL)
+
+        for pattern in self.GARBAGE:
+            if pattern.search(combined):
+                return ValidationResult(False, FailureCategory.GARBAGE_RESPONSE, f"garbage:{pattern.pattern[:32]}", FailureScope.DEPLOYMENT)
+
+        if self.HTML_DOCUMENT.match(combined):
+            return ValidationResult(False, FailureCategory.GARBAGE_RESPONSE, "html_document", FailureScope.DEPLOYMENT)
+
+        if self._expects_json(request) and content and not self._valid_json(content):
+            return ValidationResult(False, FailureCategory.INVALID_JSON, "invalid_json", FailureScope.MODEL)
+
+        return ValidationResult(True)
+
+    def strip_internal_reasoning(self, response: Any, model_group: str) -> None:
+        if model_group != "google/gemma4":
             return
-
-        if clean_value != value:
-            params[param] = clean_value
-            normalized.append(f"{prefix}{param}")
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Helpers: response introspection
-    # ─────────────────────────────────────────────────────────────────────────
-    def _get_response_preview(self, response_obj, max_chars: int = 200) -> str:
-        """Safely parses content and reasoning sections to return a concise log preview."""
-        try:
-            if not hasattr(response_obj, "choices") or not response_obj.choices:
-                return "<no_choices>"
-            message = response_obj.choices[0].message
-            content = getattr(message, "content", None) or ""
-            reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
-            combined = content + reasoning
-            preview = combined[:max_chars].replace('\n', '\\n').replace('\r', '\\r')
-            if len(combined) > max_chars:
-                preview += "..."
-            return preview
-        except Exception as e:
-            return f"<error_extracting_preview: {e}>"
-
-    def _expects_json(self, kwargs: dict) -> bool:
-        """
-        Checks if the caller explicitly expects structural JSON via response_format.
-        Only checks the response_format parameter — not message content heuristics,
-        which cause false positives when prompts discuss JSON without requesting it.
-        """
-        litellm_params = kwargs.get("litellm_params", {})
-        response_format = litellm_params.get("response_format") or kwargs.get("response_format", {})
-        if isinstance(response_format, dict):
-            return response_format.get("type", "") in ("json_schema", "json_object")
-        return False
-
-    def _looks_like_garbage(self, response_obj, kwargs: dict) -> tuple[bool, str]:
-        """
-        Inspects model responses.
-        Returns (True, reason) if output is detected as garbage/refusal.
-        """
-        if not hasattr(response_obj, "choices") or not response_obj.choices:
-            return True, "no_choices_in_response"
-
-        message = response_obj.choices[0].message
-        actual_content = getattr(message, "content", None) or ""
-        reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
-        combined_text = actual_content + " " + reasoning
-
-        # Guard: Ignore dummy mock responses so they don't trigger unexpected errors
-        if kwargs.get("model") in ("FAST", "SMART") or actual_content.strip() == "error":
-            return False, ""
-
-        # Streaming requests (SSE) deliver content via chunk events, not in the
-        # final response_obj wrapper that this hook inspects. The wrapper often
-        # reports empty content even though the client received a full stream.
-        # Audit those via async_log_stream_complete_event instead.
-        litellm_params = kwargs.get("litellm_params", {}) or {}
-        is_streaming = bool(litellm_params.get("stream") or kwargs.get("stream"))
-        # DIAGNOSTIC: log what we see so we can verify CJK detection path
-        cjk_diag = len(self._CJK_PATTERN.findall(combined_text))
-        log_to_file(
-            f"[DIAG] is_streaming={is_streaming} content_len={len(actual_content)} "
-            f"reasoning_len={len(reasoning)} cjk_count={cjk_diag} "
-            f"stream_kwarg={kwargs.get('stream')} lp_stream={litellm_params.get('stream')}"
-        )
-        if is_streaming:
-            return False, ""
-
-        # Check 1: Refusal Matching
-        for compiled in self._COMPILED_REFUSAL:
-            if compiled.search(combined_text):
-                return True, f"refusal_match:{compiled.pattern[:20]}..."
-
-        # Check 2: Loop/Garbage Pattern Matching
-        for compiled in self._COMPILED_GARBAGE:
-            if compiled.search(combined_text):
-                return True, f"garbage_match:{compiled.pattern[:20]}..."
-
-        # Check 3: Web-Scraping / HTML Leaks
-        if self._HTML_LEAK_PATTERN.match(combined_text):
-            return True, "leaked_html_document"
-
-        # Check 3b: Excessive CJK characters — model responding in Chinese
-        # when it shouldn't be (typically alignment/policy refusals on CN models).
-        cjk_count = len(self._CJK_PATTERN.findall(combined_text))
-        if cjk_count > self.CJK_REJECT_THRESHOLD:
-            return True, f"excess_cjk:{cjk_count}"
-
-        # Check 4: JSON Format Mismatch
-        # When the client requests JSON but the model returns prose/empty,
-        # log the mismatch but do NOT mark the deployment as dead.
-        # The fallback chain will try the next model instead.
-        if self._expects_json(kwargs):
-            model_name = self._get_model_alias(kwargs)
-            if not actual_content.strip():
-                log_to_file(f"[JSON_FORMAT_MISMATCH] model={model_name} empty content but JSON expected in response_format/messages")
-            elif '{' not in actual_content and '[' not in actual_content:
-                log_to_file(f"[JSON_FORMAT_MISMATCH] model={model_name} no JSON structure in response (prose returned instead)")
-        else:
-            # Check 5: Empty response detection
-            if not combined_text.strip():
-                if reasoning.strip():
-                    return False, ""
-                return True, "response_is_empty"
-
-        return False, ""
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Helpers: deployment identification
-    # ─────────────────────────────────────────────────────────────────────────
-    def _get_model_alias(self, kwargs) -> str:
-        """Returns the user-facing model alias (e.g. 'nvidia/glm52') instead of the provider model."""
-        litellm_params = kwargs.get("litellm_params") or {}
-        metadata = litellm_params.get("metadata") or {}
-        return (
-            metadata.get("model_group")
-            or kwargs.get("model", "unknown")
-        )
-
-    def _get_deployment_id(self, kwargs) -> str:
-        """Retrieves the unique, long-form identifier of the targeted model node."""
-        litellm_params = kwargs.get("litellm_params") or {}
-        model_info = litellm_params.get("model_info") or {}
-        model_id = model_info.get("id", "")
-        if model_id and len(model_id) >= 20:
-            return model_id
-        return ""
-
-    def _is_retry_available(self, kwargs: dict) -> bool:
-        """True when the router still has a retry budget for this request."""
-        if not kwargs:
-            return False
-        litellm_params = kwargs.get("litellm_params", {})
-        metadata = litellm_params.get("metadata", {})
-        attempt = metadata.get("attempt", 1)
-        retry_count = litellm_params.get("retry_count", 0)
-        return attempt <= 1 and retry_count > 0
-
-    # ─────────────────────────────────────────────────────────────────────────
-    # Helpers: failure tracking + cooldown
-    # ─────────────────────────────────────────────────────────────────────────
-    def _increment_failure(self, deployment_id: str, is_failure: bool):
-        """Tracks consecutive failures per deployment; resets on any success."""
-        if is_failure:
-            self._deployment_failures[deployment_id] = self._deployment_failures.get(deployment_id, 0) + 1
-            self._deployment_last_failure[deployment_id] = time.monotonic()
-        else:
-            self._deployment_failures.pop(deployment_id, None)
-            self._deployment_last_failure.pop(deployment_id, None)
-
-    def _should_mark_dead(self, deployment_id: str, reason: str, kwargs: dict) -> bool:
-        """
-        Decide whether a failure is severe enough to put the deployment on cooldown.
-
-        - Empty responses need CONSECUTIVE_FAILURE_THRESHOLD strikes (often transient).
-        - Anything else is marked dead immediately, unless a retry is still available.
-        """
-        base_reason = reason.removeprefix("stream_")
-
-        if base_reason == "response_is_empty":
-            # Reset counter if the last empty-response failure is older than the
-            # empty-response cooldown window — don't punish for stale history.
-            last = self._deployment_last_failure.get(deployment_id, 0)
-            if last and (time.monotonic() - last > self.EMPTY_RESPONSE_COOLDOWN_SECONDS):
-                self._deployment_failures.pop(deployment_id, None)
-                self._deployment_last_failure.pop(deployment_id, None)
-            consecutive = self._deployment_failures.get(deployment_id, 0) + 1
-            if consecutive < self.CONSECUTIVE_FAILURE_THRESHOLD:
-                log_to_file(
-                    f"[FAILURE_ACCUMULATING] deployment={deployment_id[:16]}... "
-                    f"reason={reason} count={consecutive}/{self.CONSECUTIVE_FAILURE_THRESHOLD}"
-                )
-                return False
-            return True
-
-        if self._is_retry_available(kwargs):
-            log_to_file(
-                f"[RETRY_PENDING] deployment={deployment_id[:16]}... "
-                f"reason={reason} - skipping cooldown, retry may succeed"
+        message = self._first_message(response)
+        if message is None:
+            return
+        content = self._text(getattr(message, "content", None))
+        if "<thought" not in content.lower():
+            return
+        stripped = self.THOUGHT_PATTERN.sub("", content).strip()
+        if stripped != content.strip():
+            message.content = stripped
+            LOGGER.info(
+                "event=thought_stripped model=%s original_length=%d result_length=%d",
+                model_group,
+                len(content),
+                len(stripped),
             )
+
+    @staticmethod
+    def _first_message(response: Any) -> Any:
+        choices = getattr(response, "choices", None)
+        if not choices:
+            return None
+        choice = choices[0]
+        return getattr(choice, "message", None) or getattr(choice, "delta", None)
+
+    @staticmethod
+    def _text(value: Any) -> str:
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            parts: list[str] = []
+            for item in value:
+                if isinstance(item, dict) and isinstance(item.get("text"), str):
+                    parts.append(item["text"])
+                elif hasattr(item, "text"):
+                    parts.append(str(item.text))
+            return "".join(parts)
+        return "" if value is None else str(value)
+
+    @staticmethod
+    def _expects_json(request: dict[str, Any]) -> bool:
+        params = request.get("litellm_params") or {}
+        response_format = request.get("response_format") or params.get("response_format") or {}
+        return isinstance(response_format, dict) and response_format.get("type") in {
+            "json_object",
+            "json_schema",
+        }
+
+    @staticmethod
+    def _valid_json(content: str) -> bool:
+        candidate = content.strip()
+        if candidate.startswith("```"):
+            candidate = re.sub(r"^```(?:json)?\s*|\s*```$", "", candidate, flags=re.IGNORECASE)
+        try:
+            json.loads(candidate)
+            return True
+        except (TypeError, ValueError):
             return False
 
-        return True
 
-    def _mark_deployment_dead(self, deployment_id: str, reason: str, kwargs: dict):
-        """
-        Manually triggers a failover on a model node by flagging it in the
-        active cooldown cache. The node remains inactive for COOLDOWN_SECONDS
-        (or a shorter duration for empty responses).
-        """
-        if not self._should_mark_dead(deployment_id, reason, kwargs):
-            self._increment_failure(deployment_id, True)
-            return
+class ErrorClassifier:
+    def classify(self, exception: Any) -> FailureDecision:
+        status = self._status_code(exception)
+        name = type(exception).__name__.lower() if exception is not None else ""
+        message = str(exception).lower() if exception is not None else ""
 
-        self._increment_failure(deployment_id, True)
+        if status in (401, 403) or "authentication" in name:
+            return FailureDecision(FailureCategory.AUTHENTICATION, FailureScope.DEPLOYMENT, 3600)
+        if status == 429 or "ratelimit" in name or "rate limit" in message:
+            return FailureDecision(FailureCategory.RATE_LIMIT, FailureScope.DEPLOYMENT, self._retry_after(exception, 60), threshold=2)
+        if status in (502, 503, 504) or "badgateway" in name:
+            return FailureDecision(FailureCategory.BAD_GATEWAY, FailureScope.DEPLOYMENT, 60)
+        if "timeout" in name or "timed out" in message:
+            return FailureDecision(FailureCategory.TIMEOUT, FailureScope.DEPLOYMENT, 45, threshold=2)
+        if any(token in name or token in message for token in ("connection", "connecterror", "dns", "tls", "ssl")):
+            return FailureDecision(FailureCategory.CONNECTION, FailureScope.DEPLOYMENT, 60)
+        if "contentpolicy" in name or "moderation" in message:
+            return FailureDecision(FailureCategory.CONTENT_POLICY, FailureScope.MODEL, 0)
+        if status is not None and 400 <= status < 500:
+            return FailureDecision(FailureCategory.CLIENT_ERROR, FailureScope.REQUEST, 0, retry_current_request=False)
+        if status is not None and status >= 500:
+            return FailureDecision(FailureCategory.SERVER_ERROR, FailureScope.DEPLOYMENT, 60)
+        return FailureDecision(FailureCategory.UNKNOWN, FailureScope.DEPLOYMENT, 30, threshold=2)
 
-        base_reason = reason.removeprefix("stream_")
-        cooldown = (
-            self.EMPTY_RESPONSE_COOLDOWN_SECONDS
-            if base_reason == "response_is_empty"
-            else self.COOLDOWN_SECONDS
-        )
+    @staticmethod
+    def _status_code(exception: Any) -> Optional[int]:
+        for owner in (exception, getattr(exception, "response", None)):
+            if owner is None:
+                continue
+            value = getattr(owner, "status_code", None) or getattr(owner, "status", None)
+            if isinstance(value, int):
+                return value
+        return None
 
-        msg = f"[UniversalGarbageHandler] Marking deployment {deployment_id[:12]}... as DEAD (reason: {reason}, cooldown: {cooldown}s)"
-        print(msg)
-        log_to_file(f"[DEPLOYMENT_DEAD] deployment={deployment_id[:16]}... reason={reason} cooldown={cooldown}s")
+    @staticmethod
+    def _retry_after(exception: Any, default: int) -> int:
+        response = getattr(exception, "response", None)
+        headers = getattr(response, "headers", None) or {}
+        value = headers.get("retry-after") or headers.get("Retry-After")
+        try:
+            return max(1, min(int(value), 3600))
+        except (TypeError, ValueError):
+            return default
 
+
+class LiteLLMCooldownAdapter:
+    @staticmethod
+    def router() -> Any:
         try:
             from litellm.proxy.proxy_server import llm_router
-            if llm_router is None or not hasattr(llm_router, 'cooldown_cache'):
-                return
 
-            fake_exception = litellm.InternalServerError(
-                message=f"Garbage response detected: {reason}",
-                model=deployment_id,
-                llm_provider="",
-            )
+            return llm_router
+        except Exception:
+            return None
 
+    def add(self, deployment_id: str, decision: FailureDecision, reason: str) -> bool:
+        if not deployment_id or decision.cooldown_seconds <= 0:
+            return False
+        router = self.router()
+        cache = getattr(router, "cooldown_cache", None)
+        if cache is None:
+            LOGGER.warning("event=cooldown_unavailable deployment=%s", deployment_id)
+            return False
+
+        exception = litellm.InternalServerError(
+            message=f"Upstream deployment rejected: {reason}",
+            model=deployment_id,
+            llm_provider="openai",
+        )
+        arguments = {
+            "original_exception": exception,
+            "exception_status": 500,
+            "cooldown_time": float(decision.cooldown_seconds),
+        }
+        try:
             try:
-                llm_router.cooldown_cache.add_deployment_to_cooldown(
-                    model_id=deployment_id,
-                    original_exception=fake_exception,
-                    exception_status=500,
-                    cooldown_time=float(cooldown),
-                )
+                cache.add_deployment_to_cooldown(model_id=deployment_id, **arguments)
             except TypeError:
-                # Older LiteLLM versions use `deployment_id=` instead of `model_id=`.
-                llm_router.cooldown_cache.add_deployment_to_cooldown(
-                    deployment_id=deployment_id,
-                    original_exception=fake_exception,
-                    exception_status=500,
-                    cooldown_time=float(cooldown),
+                cache.add_deployment_to_cooldown(deployment_id=deployment_id, **arguments)
+            return True
+        except Exception:
+            LOGGER.exception("event=cooldown_failed deployment=%s", deployment_id)
+            return False
+
+
+class CircuitBreaker:
+    def __init__(self, cooldown: LiteLLMCooldownAdapter) -> None:
+        self.cooldown = cooldown
+        self._failures: dict[tuple[str, FailureCategory], tuple[int, float]] = {}
+        self._lock = threading.Lock()
+
+    def record_failure(self, deployment_id: str, decision: FailureDecision, reason: str) -> bool:
+        if not deployment_id or decision.scope != FailureScope.DEPLOYMENT:
+            return False
+        key = (deployment_id, decision.category)
+        now = time.monotonic()
+        with self._lock:
+            count, last = self._failures.get(key, (0, 0.0))
+            if last and now - last > max(decision.cooldown_seconds, 60):
+                count = 0
+            count += 1
+            self._failures[key] = (count, now)
+            if count < decision.threshold:
+                LOGGER.info(
+                    "event=failure_accumulating deployment=%s category=%s count=%d threshold=%d",
+                    deployment_id,
+                    decision.category.value,
+                    count,
+                    decision.threshold,
                 )
-        except Exception as e:
-            log_to_file(f"[ERROR] Failed to mark deployment dead: {e}")
+                return False
+            self._failures.pop(key, None)
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Lifecycle Hooks 2 & 3: Logging and Output Auditing
-    # (Non-Streaming + Streaming Completions share the same audit pipeline)
-    # ─────────────────────────────────────────────────────────────────────────
-    def _strip_thought_blocks(self, response_obj, model_name: str):
-        """Strip <thought>...</thought> blocks from reasoning model responses."""
-        if not hasattr(response_obj, "choices") or not response_obj.choices:
-            return
-        message = response_obj.choices[0].message
-        actual_content = getattr(message, "content", None) or ""
-        if actual_content and "<thought" in actual_content.lower():
-            stripped = self._THOUGHT_PATTERN.sub("", actual_content).strip()
-            if stripped != actual_content.strip():
-                log_to_file(
-                    f"[THOUGHT_STRIP] model={model_name} "
-                    f"original_len={len(actual_content)} stripped_len={len(stripped)}"
-                )
-                message.content = stripped
+        marked = self.cooldown.add(deployment_id, decision, reason)
+        LOGGER.warning(
+            "event=circuit_open deployment=%s category=%s cooldown=%d marked=%s reason=%s",
+            deployment_id,
+            decision.category.value,
+            decision.cooldown_seconds,
+            marked,
+            reason,
+        )
+        return marked
 
-    async def _audit_response(self, kwargs, response_obj, *, stream: bool):
-        """Shared audit pipeline used by both completion and streaming hooks."""
-        deployment_id = self._get_deployment_id(kwargs)
-        model_name = self._get_model_alias(kwargs)
-
-        preview = self._get_response_preview(response_obj)
-
-        tag = "STREAM_COMPLETE" if stream else "RESPONSE"
-        log_to_file(f"[{tag}] model={model_name} deploy={deployment_id[:12]} preview={preview!r}")
-
+    def record_success(self, deployment_id: str) -> None:
         if not deployment_id:
             return
+        with self._lock:
+            for key in [key for key in self._failures if key[0] == deployment_id]:
+                self._failures.pop(key, None)
 
-        is_garbage, reason = self._looks_like_garbage(response_obj, kwargs)
-        if is_garbage:
-            log_to_file(f"[GARBAGE_DETECTED] model={model_name} reason={reason}")
-            prefixed_reason = f"stream_{reason}" if stream else reason
-            self._mark_deployment_dead(deployment_id, prefixed_reason, kwargs)
-        else:
-            self._increment_failure(deployment_id, False)
 
-    async def async_log_success_event(self, kwargs, response_obj, start_time, end_time):
-        """Triggered upon any successful standard chat completion."""
-        await self._audit_response(kwargs, response_obj, stream=False)
+class Configuration:
+    def __init__(self, path: pathlib.Path) -> None:
+        self.path = path
+        self.fallbacks: dict[str, list[str]] = {}
+        self.aliases: dict[str, str] = {}
+        self._load_and_validate()
 
-    async def async_log_stream_complete_event(self, kwargs, response_obj, start_time, end_time):
-        """Triggered after an entire stream of tokens has completed."""
-        await self._audit_response(kwargs, response_obj, stream=True)
+    def _load_and_validate(self) -> None:
+        with self.path.open("r", encoding="utf-8") as handle:
+            config = yaml.safe_load(handle) or {}
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Lifecycle Hook 4: Logging Natural Failures (e.g., Timeout, 429 Rate Limit)
-    # ─────────────────────────────────────────────────────────────────────────
-    async def async_log_failure_event(self, kwargs, response_obj, start_time, end_time):
-        """Triggered if an API call fails due to standard provider errors."""
-        deployment_id = self._get_deployment_id(kwargs)
-        model_name = self._get_model_alias(kwargs)
+        model_list = config.get("model_list") or []
+        groups = {entry.get("model_name") for entry in model_list if isinstance(entry, dict)}
+        ids: list[str] = []
+        for entry in model_list:
+            if not isinstance(entry, dict):
+                continue
+            model_info = entry.get("model_info") or {}
+            deployment_id = model_info.get("id")
+            if not deployment_id:
+                raise RuntimeError(f"Deployment in group {entry.get('model_name')} has no model_info.id")
+            ids.append(str(deployment_id))
+        if len(ids) != len(set(ids)):
+            raise RuntimeError("Duplicate model_info.id values in config.yaml")
 
+        settings = config.get("router_settings") or {}
+        aliases = settings.get("model_group_alias") or {}
+        self.aliases = {
+            str(alias): str(value.get("model") if isinstance(value, dict) else value)
+            for alias, value in aliases.items()
+        }
+        fallback_items = settings.get("fallbacks") or []
+        for item in fallback_items:
+            if isinstance(item, dict):
+                for source, targets in item.items():
+                    self.fallbacks[str(source)] = [str(target) for target in (targets or [])]
+
+        referenced = set(self.aliases.values())
+        referenced.update(self.fallbacks)
+        referenced.update(target for targets in self.fallbacks.values() for target in targets)
+        missing = sorted(name for name in referenced if name not in groups)
+        if missing:
+            raise RuntimeError(f"Unknown model groups referenced by aliases/fallbacks: {missing}")
+        missing_fallback_entries = sorted(name for name in groups if name not in self.fallbacks)
+        if missing_fallback_entries:
+            raise RuntimeError(f"Model groups missing fallback entries: {missing_fallback_entries}")
+
+    def resolve_alias(self, model: str) -> str:
+        return self.aliases.get(model, model)
+
+    def next_model(self, model: str) -> Optional[str]:
+        group = self.resolve_alias(model)
+        targets = self.fallbacks.get(group) or []
+        return targets[0] if targets else None
+
+
+class UniversalServiceHandler(CustomLogger):
+    """Request sanitation, response validation, bounded quality retry and health management."""
+
+    RETRY_MARKER = "_openvault_quality_retry"
+    RETRY_FIELDS = frozenset(
+        {
+            "messages",
+            "temperature",
+            "top_p",
+            "max_tokens",
+            "max_completion_tokens",
+            "stop",
+            "response_format",
+            "tools",
+            "tool_choice",
+            "parallel_tool_calls",
+            "seed",
+            "user",
+            "n",
+        }
+    )
+
+    def __init__(self) -> None:
+        self.sanitizer = RequestSanitizer()
+        self.validator = ResponseValidator()
+        self.classifier = ErrorClassifier()
+        self.cooldown = LiteLLMCooldownAdapter()
+        self.breaker = CircuitBreaker(self.cooldown)
+        self.config = Configuration(CONFIG_FILE)
+        LOGGER.info("event=handler_initialized aliases=%s", self.config.aliases)
+
+    async def async_pre_call_hook(
+        self,
+        user_api_key_dict: dict,
+        cache: Any,
+        data: dict[str, Any],
+        call_type: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        return self.sanitizer.sanitize(data)
+
+    async def async_pre_call_deployment_hook(
+        self, kwargs: dict[str, Any], call_type: Optional[object]
+    ) -> dict[str, Any]:
+        return self.sanitizer.sanitize(kwargs)
+
+    async def async_log_success_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
+        await self._audit(kwargs, response_obj, stream=False)
+
+    async def async_log_stream_complete_event(
+        self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any
+    ) -> None:
+        await self._audit(kwargs, response_obj, stream=True)
+
+    async def async_log_failure_event(self, kwargs: dict, response_obj: Any, start_time: Any, end_time: Any) -> None:
         exception = kwargs.get("exception") or kwargs.get("original_exception") or response_obj
-        exception_type = type(exception).__name__ if exception else "Unknown"
-        exception_msg = str(exception)[:200] if exception else "no details"
-
-        log_to_file(
-            f"[PROVIDER_FAILURE] model={model_name} deploy={deployment_id[:12]} "
-            f"error={exception_type}: {exception_msg!r}"
+        decision = self.classifier.classify(exception)
+        deployment_id = self._deployment_id(kwargs, response_obj)
+        LOGGER.warning(
+            "event=provider_failure model=%s deployment=%s category=%s error=%s",
+            self._model_group(kwargs),
+            deployment_id,
+            decision.category.value,
+            self._safe_error(exception),
         )
+        self.breaker.record_failure(deployment_id, decision, self._safe_error(exception))
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # Lifecycle Hook 5: Post-Call Guard (runs BEFORE response reaches client)
-    # ─────────────────────────────────────────────────────────────────────────
     async def async_post_call_success_hook(
-        self, data: dict, response, user_api_key_dict=None
-    ):
-        """
-        Inspects the response after the upstream call completes but BEFORE it
-        is returned to the client. Strips thought blocks from reasoning models
-        and blocks garbage fragments that the client would misinterpret.
-        """
-        if not hasattr(response, "choices") or not response.choices:
+        self,
+        data: dict[str, Any],
+        user_api_key_dict: Any,
+        response: Any,
+    ) -> Any:
+        model_group = self.config.resolve_alias(self._model_group(data))
+        self.validator.strip_internal_reasoning(response, model_group)
+        result = self.validator.validate(response, data)
+        if result.valid:
             return response
 
-        message = response.choices[0].message
-        actual_content = getattr(message, "content", None) or ""
+        deployment_id = self._deployment_id(data, response)
+        decision = self._validation_decision(result)
+        self.breaker.record_failure(deployment_id, decision, result.reason)
+        LOGGER.warning(
+            "event=response_rejected model=%s deployment=%s category=%s scope=%s reason=%s",
+            model_group,
+            deployment_id,
+            result.category.value if result.category else "unknown",
+            result.scope.value,
+            result.reason,
+        )
 
-        # Strip <thought> blocks from reasoning models (e.g. google/gemma4).
-        # These models wrap all output in <thought>...</thought> tags which are
-        # internal reasoning artifacts, not user-facing content.
-        if actual_content and "<thought" in actual_content.lower():
-            model_name = (
-                data.get("litellm_params", {})
-                .get("metadata", {})
-                .get("model_group")
-                or data.get("model", "unknown")
+        metadata = data.get("metadata") or {}
+        if metadata.get(self.RETRY_MARKER):
+            raise self._upstream_error(model_group, result.reason)
+
+        retry_model = self.config.next_model(model_group) if result.scope == FailureScope.MODEL else model_group
+        if not retry_model:
+            raise self._upstream_error(model_group, result.reason)
+        return await self._quality_retry(data, retry_model, result.reason)
+
+    async def _quality_retry(self, data: dict[str, Any], model: str, reason: str) -> Any:
+        router = self.cooldown.router()
+        if router is None:
+            raise self._upstream_error(model, reason)
+
+        retry_data = {key: data[key] for key in self.RETRY_FIELDS if key in data}
+        retry_data["model"] = model
+        retry_data["stream"] = False
+        metadata = dict(data.get("metadata") or {})
+        metadata[self.RETRY_MARKER] = True
+        metadata["quality_retry_reason"] = reason
+        retry_data["metadata"] = metadata
+        self.sanitizer.sanitize(retry_data)
+
+        LOGGER.info("event=quality_retry target=%s reason=%s", model, reason)
+        try:
+            response = await router.acompletion(**retry_data)
+        except Exception:
+            LOGGER.exception("event=quality_retry_failed target=%s", model)
+            raise
+
+        self.validator.strip_internal_reasoning(response, self.config.resolve_alias(model))
+        retry_result = self.validator.validate(response, retry_data)
+        if not retry_result.valid:
+            retry_deployment = self._deployment_id(retry_data, response)
+            self.breaker.record_failure(
+                retry_deployment,
+                self._validation_decision(retry_result),
+                retry_result.reason,
             )
-            if model_name in self.REASONING_MODELS_MIN_TOKENS or model_name == "google/gemma4":
-                stripped = self._THOUGHT_PATTERN.sub("", actual_content).strip()
-                if stripped != actual_content.strip():
-                    log_to_file(
-                        f"[THOUGHT_STRIP] model={model_name} "
-                        f"original_len={len(actual_content)} stripped_len={len(stripped)}"
-                    )
-                    message.content = stripped
-                    actual_content = stripped
-
-        reasoning = getattr(message, "reasoning", None) or getattr(message, "reasoning_content", None) or ""
-        combined = actual_content + " " + reasoning
-
-        for compiled in self._COMPILED_GARBAGE:
-            if compiled.search(combined):
-                model_name = (
-                    data.get("litellm_params", {})
-                    .get("metadata", {})
-                    .get("model_group")
-                    or data.get("model", "unknown")
-                )
-                log_to_file(
-                    f"[POST_CALL_GARBAGE_BLOCKED] model={model_name} "
-                    f"pattern={compiled.pattern!r}"
-                )
-                deployment_id = self._get_deployment_id(data)
-                if deployment_id:
-                    self._mark_deployment_dead(deployment_id, f"garbage:{compiled.pattern[:20]}", data)
-                raise litellm.BadRequestError(
-                    message=f"Garbage response blocked by proxy: {compiled.pattern[:30]}",
-                    model=model_name,
-                    llm_provider="",
-                )
-
-        cjk_count = len(self._CJK_PATTERN.findall(combined))
-        if cjk_count > self.CJK_REJECT_THRESHOLD:
-            model_name = (
-                data.get("litellm_params", {})
-                .get("metadata", {})
-                .get("model_group")
-                or data.get("model", "unknown")
-            )
-            log_to_file(
-                f"[POST_CALL_GARBAGE_BLOCKED] model={model_name} "
-                f"reason=excess_cjk count={cjk_count}"
-            )
-            deployment_id = self._get_deployment_id(data)
-            if deployment_id:
-                self._mark_deployment_dead(deployment_id, f"excess_cjk:{cjk_count}", data)
-            raise litellm.BadRequestError(
-                message=f"Garbage response blocked by proxy: excess CJK ({cjk_count})",
-                model=model_name,
-                llm_provider="",
-            )
-
+            raise self._upstream_error(model, retry_result.reason)
         return response
 
+    async def _audit(self, kwargs: dict[str, Any], response: Any, stream: bool) -> None:
+        deployment_id = self._deployment_id(kwargs, response)
+        model_group = self._model_group(kwargs)
+        result = self.validator.validate(response, kwargs)
+        if result.valid:
+            self.breaker.record_success(deployment_id)
+            LOGGER.info(
+                "event=response_ok model=%s deployment=%s stream=%s",
+                model_group,
+                deployment_id,
+                stream,
+            )
+            return
+        LOGGER.warning(
+            "event=response_invalid model=%s deployment=%s stream=%s category=%s reason=%s",
+            model_group,
+            deployment_id,
+            stream,
+            result.category.value if result.category else "unknown",
+            result.reason,
+        )
+        # Non-streaming responses are handled again by the proxy post-call hook,
+        # which can retry them. Counting here as well would double-count one bad
+        # response and open a threshold-2 circuit immediately. Streams have no
+        # post-call retry boundary, so their completed audit owns health updates.
+        if stream:
+            self.breaker.record_failure(deployment_id, self._validation_decision(result), result.reason)
 
-# Instantiate class to automatically register callback within LiteLLM
-custom_handler = UniversalGarbageHandler()
+    @staticmethod
+    def _validation_decision(result: ValidationResult) -> FailureDecision:
+        category = result.category or FailureCategory.UNKNOWN
+        if category == FailureCategory.EMPTY_RESPONSE:
+            return FailureDecision(category, result.scope, 45, threshold=2)
+        if category in (FailureCategory.REFUSAL, FailureCategory.INVALID_JSON):
+            return FailureDecision(category, FailureScope.MODEL, 0)
+        return FailureDecision(category, result.scope, 120)
+
+    @staticmethod
+    def _model_group(data: dict[str, Any]) -> str:
+        return RequestSanitizer.model_group(data)
+
+    @staticmethod
+    def _deployment_id(data: dict[str, Any], response: Any = None) -> str:
+        params = data.get("litellm_params") or {}
+        model_info = params.get("model_info") or data.get("model_info") or {}
+        metadata = params.get("metadata") or data.get("metadata") or {}
+        hidden = getattr(response, "_hidden_params", None) or {}
+        for value in (
+            model_info.get("id"),
+            hidden.get("model_id"),
+            hidden.get("deployment_id"),
+            metadata.get("model_id"),
+            metadata.get("deployment"),
+        ):
+            if value:
+                return str(value)
+        return ""
+
+    @staticmethod
+    def _safe_error(exception: Any) -> str:
+        return re.sub(r"[\r\n]+", " ", str(exception or "unknown"))[:300]
+
+    @staticmethod
+    def _upstream_error(model: str, reason: str) -> Exception:
+        return litellm.InternalServerError(
+            message=f"All validated upstream attempts failed: {reason}",
+            model=model,
+            llm_provider="openai",
+        )
+
+
+custom_handler = UniversalServiceHandler()
