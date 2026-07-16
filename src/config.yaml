@@ -607,8 +607,8 @@ router_settings:
   - zai/glm52: []
   - zai/glm-4.5-air: []
 
-  timeout: 60 # Bound a dead/slow proxy so another base URL can serve the request quickly
-  num_retries: 0 # Switch deployments immediately; the quality handler owns one bounded semantic retry
+  timeout: 180 # Bound a dead/slow proxy so another base URL can serve the request quickly
+  num_retries: 3 # MUST be > 0 so LiteLLM can cycle to the next proxy when one returns a 429 / 408
   enable_pre_call_checks: false # Set to false to avoid making ping calls prior to every request (saves latency)
   allowed_fails: 2 # Avoid removing a proxy for one isolated transient failure
   cooldown_time: 60 # Cooldowns expire quickly and the next real request acts as a half-open probe
