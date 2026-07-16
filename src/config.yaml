@@ -356,7 +356,7 @@ model_list:
 # --- NVIDIA thinkingmachines/inkling Pool ---
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-01
+    id: nvidia-smart-proxy-21
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -367,7 +367,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-02
+    id: nvidia-smart-proxy-22
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -378,7 +378,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-03
+    id: nvidia-smart-proxy-23
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -389,7 +389,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-04
+    id: nvidia-smart-proxy-24
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -400,7 +400,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-05
+    id: nvidia-smart-proxy-25
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -411,7 +411,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-06
+    id: nvidia-smart-proxy-26
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -422,7 +422,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-07
+    id: nvidia-smart-proxy-207
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -433,7 +433,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-08
+    id: nvidia-smart-proxy-28
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -444,7 +444,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-09
+    id: nvidia-smart-proxy-29
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -455,7 +455,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-10
+    id: nvidia-smart-proxy-30
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -466,7 +466,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-11
+    id: nvidia-smart-proxy-31
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -477,7 +477,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-12
+    id: nvidia-smart-proxy-32
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -488,7 +488,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-13
+    id: nvidia-smart-proxy-33
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -499,7 +499,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-14
+    id: nvidia-smart-proxy-34
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
@@ -510,7 +510,7 @@ model_list:
 
 - model_name: nvidia/smart
   model_info:
-    id: nvidia-smart-proxy-15
+    id: nvidia-smart-proxy-35
   litellm_params:
     model: thinkingmachines/inkling
     custom_llm_provider: "openai"
