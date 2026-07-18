@@ -545,6 +545,19 @@ model_list:
     supports_reasoning: true
     additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
 
+- model_name: zai/glm51
+  model_info:
+    id: zai-glm51-primary
+  litellm_params:
+    model: glm-5.1
+    custom_llm_provider: "openai"
+    api_base: os.environ/ZAI_API_BASE
+    api_key: os.environ/ZAI_API_KEY
+    rpm: 10
+    drop_params: true
+    supports_reasoning: true
+    additional_drop_params: [ "frequency_penalty", "presence_penalty" ]
+
 # old shit but redirects internally to glm47. Saves plan quota
 - model_name: zai/glm-4.5-air
   model_info:
@@ -594,6 +607,7 @@ router_settings:
   - nvidia/smart: []
   - longcat: []
   - zai/glm52: []
+  - zai/glm51: []
   - zai/glm-4.5-air: []
   # Content policy fallbacks are matched if a provider explicitly rejects a prompt due to their moderation policy.
   content_policy_fallbacks:
@@ -605,6 +619,7 @@ router_settings:
   - nvidia/smart: []
   - longcat: []
   - zai/glm52: []
+  - zai/glm51: []
   - zai/glm-4.5-air: []
 
   timeout: 180 # Bound a dead/slow proxy so another base URL can serve the request quickly
